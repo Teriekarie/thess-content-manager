@@ -82,5 +82,5 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - [x] Phase 0 — Project foundation (built; deployment waiting on GitHub connection)
 - [ ] Phase 1a — Fast first use (scope extended, see `docs/PRD-amendments.md`)
 - [ ] Holidays and key dates, then Analytics
-- [ ] Image generation and carousel designer (image service undecided)
+- [ ] Designed graphics and carousel designer (app-drawn; no external image service)
 - [ ] Remaining PRD phases (research automation, learning, integrations)

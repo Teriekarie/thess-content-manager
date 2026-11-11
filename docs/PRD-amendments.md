@@ -32,4 +32,7 @@ Agreed with Thess on 11 November 2026 after reviewing the design preview. Where 
 ## Open decisions
 
 - **Confidentiality check.** Remove completely, or keep a quiet background check that only speaks up when a draft contains something like a company name. Not yet answered.
-- **Image generation.** Thess expects Claude to generate images. The Anthropic API produces text (including code for designed graphics such as carousels and text cards), not realistic photographs. Realistic images need a separate image service. To be settled before the image milestone; do not add a paid service without approval.
+
+## Decided since
+
+- **Images (11 November 2026).** No external image service. The app creates its own designed graphics (text cards, simple illustrations, carousels) drawn by the app from AI-written layouts. Realistic photos are added by Thess manually on the platform.
