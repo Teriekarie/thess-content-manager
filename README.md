@@ -29,7 +29,7 @@ npm run dev
 
 | Name | What it is | Secret? |
 |---|---|---|
-| `NEXT_PUBLIC_APP_URL` | The app's web address, e.g. `http://localhost:3000` or the Vercel address | No |
+| `NEXT_PUBLIC_APP_URL` | Optional. The app's web address. On Vercel it is worked out automatically; set it only for a custom domain | No |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | No |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable key | No (safe by design; Row Level Security protects the data) |
 | `OWNER_EMAIL` | The only email address allowed to sign in | Server only |

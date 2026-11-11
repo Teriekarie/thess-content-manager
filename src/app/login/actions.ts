@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { isOwnerEmail } from "@/lib/auth/owner";
-import { ownerEmail, publicEnv } from "@/lib/env";
+import { appUrl, ownerEmail } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { status: "idle" | "sent" | "error"; message: string };
@@ -29,7 +29,7 @@ export async function sendSignInLink(
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data,
     options: {
-      emailRedirectTo: `${publicEnv().NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: `${appUrl()}/auth/callback`,
     },
   });
   if (error) {
