@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Thess's Personal AI Content & Growth Manager
 
-## Getting Started
+A private web app that turns ideas and learning notes into review-ready social posts. See `docs/PRD.md` and `docs/PRD-amendments.md` for the full specification, and `CLAUDE.md` for the working rules.
 
-First, run the development server:
+**Current milestone:** Phase 0 (foundation). Sign-in, protected pages, the database and an empty app shell. No AI features yet.
+
+## Run it on your computer
+
+1. Install Node.js 22 or newer.
+2. Install the packages:
+
+```bash
+npm install
+```
+
+3. Copy the settings file, then fill in the values (see the table below):
+
+```bash
+cp .env.example .env.local
+```
+
+4. Start the app, then open http://localhost:3000:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Settings (environment variables)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Name | What it is | Secret? |
+|---|---|---|
+| `NEXT_PUBLIC_APP_URL` | The app's web address, e.g. `http://localhost:3000` or the Vercel address | No |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | No |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable key | No (safe by design; Row Level Security protects the data) |
+| `OWNER_EMAIL` | The only email address allowed to sign in | Server only |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Never commit `.env.local`. Never prefix a secret with `NEXT_PUBLIC_`.
 
-## Learn More
+## Check it
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run typecheck
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+```
 
-## Deploy on Vercel
+```bash
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Supabase set-up (one time)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+In the Supabase dashboard, under Authentication, URL Configuration:
+
+1. Set **Site URL** to the app's address.
+2. Add `<app address>/auth/callback` to **Redirect URLs** (add `http://localhost:3000/auth/callback` too for local use).
+
+After your first successful sign-in, under Authentication, Sign In / Providers, switch off **Allow new users to sign up**.
+
+## Where things are
+
+- `src/proxy.ts`: locks every page for signed-out visitors.
+- `src/lib/auth/`: owner check and the list of public paths.
+- `src/app/login/`, `src/app/auth/callback/`: sign-in.
+- `src/app/(app)/`: the private pages.
+- `src/app/api/health/`: status check.
+- `supabase/migrations/`: database changes.
+- `tests/`: automated tests.
+- `docs/adr/`: decisions and reasons.
+
+## Known limits in Phase 0
+
+- The sign-in link must be opened in the same browser that requested it.
+- Supabase's built-in email sender allows only a few emails per hour.
