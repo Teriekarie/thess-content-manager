@@ -2,7 +2,7 @@
 
 A private web app that turns ideas and learning notes into review-ready social posts. See `docs/PRD.md` and `docs/PRD-amendments.md` for the full specification, and `CLAUDE.md` for the working rules.
 
-**Current milestone:** Phase 0 (foundation). Sign-in, protected pages, the database and an empty app shell. No AI features yet.
+**Current milestone:** Phase 1a, part 1. Settings, voice guide, Idea Inbox, AI drafts for LinkedIn, Instagram + Facebook and TikTok, draft review and the This Week board. Calendar, Home dashboard and live web research come in part 2.
 
 ## Run it on your computer
 
@@ -33,6 +33,8 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | No |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable key | No (safe by design; Row Level Security protects the data) |
 | `OWNER_EMAIL` | The only email address allowed to sign in | Server only |
+| `ANTHROPIC_API_KEY` | Lets the app use Claude. Created at console.anthropic.com | **Yes, server only** |
+| `AI_MODEL` | Optional. Which Claude model writes the drafts. Defaults to `claude-opus-5-5`; `claude-sonnet-5-5` and `claude-haiku-5-5` are cheaper | No |
 
 Never commit `.env.local`. Never prefix a secret with `NEXT_PUBLIC_`.
 
@@ -74,7 +76,20 @@ After your first successful sign-in, under Authentication, Sign In / Providers, 
 - `tests/`: automated tests.
 - `docs/adr/`: decisions and reasons.
 
-## Known limits in Phase 0
+## How drafting works
+
+1. An idea is saved in `ideas` and never changed afterwards.
+2. `src/lib/ai/prompts.ts` builds the request from your settings, voice guide and the idea.
+3. `src/lib/ai/provider.ts` calls Claude and checks the answer against a fixed shape (`src/lib/ai/schemas.ts`). An answer that does not fit is retried once, then reported as an error. Nothing malformed is saved.
+4. `src/lib/content/drafts.ts` tidies the answer and it is saved in `posts`.
+5. Each AI call is recorded in `usage_logs` with token counts and an estimated cost. Prompts and answers are not logged.
+
+To change the model, set `AI_MODEL` in Vercel and redeploy. Prices for the estimate live in `src/lib/ai/pricing.ts`.
+
+## Known limits
 
 - The sign-in link must be opened in the same browser that requested it.
 - Supabase's built-in email sender allows only a few emails per hour.
+- Drafts cannot be edited inside the app yet; copy and adjust on the platform.
+- "Design a graphic" and "Design a carousel" only record your choice for now.
+- On a phone the menu sits above the page content.

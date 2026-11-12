@@ -51,5 +51,6 @@ describe("secrets stay on the server", () => {
     const text = readFileSync(path.join(root, ".env.example"), "utf8");
     expect(text).toMatch(/^OWNER_EMAIL=$/m);
     expect(text).toMatch(/^NEXT_PUBLIC_SUPABASE_ANON_KEY=$/m);
+    expect(text).toMatch(/^ANTHROPIC_API_KEY=$/m);
   });
 });

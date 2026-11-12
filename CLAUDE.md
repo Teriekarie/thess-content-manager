@@ -75,12 +75,19 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - Private pages live in `src/app/(app)/`; its layout calls `requireOwner()`. Every new private route handler and server action must call `requireOwner()` too.
 - Public paths are listed only in `src/lib/auth/paths.ts`.
 - Colours and fonts are placeholder tokens in `src/app/globals.css`; do not hardcode new brand values.
-- Platforms: LinkedIn, Instagram + Facebook (one shared post), TikTok.
+- Platforms: LinkedIn, Instagram + Facebook (one shared post), TikTok. Database values: `linkedin`, `instagram_facebook`, `tiktok`.
+- All AI calls go through `generateStructured()` in `src/lib/ai/provider.ts` with a Zod schema from `src/lib/ai/schemas.ts`, and are recorded with `logUsage()`. Model comes from `AI_MODEL` (default `claude-opus-5-5`); prices in `src/lib/ai/pricing.ts`.
+- Dates are `YYYY-MM-DD` strings in Africa/Lagos; use `src/lib/dates.ts`, never raw `new Date()` arithmetic.
+- Server actions redirect with `?saved=` or `?error=` codes; pages turn the codes into plain messages.
+- Confidentiality (decided by default, Thess did not answer): no field in the UI; a quiet check inside the draft request only shows a note when `safety_status` is not `clear`.
+- To check screens locally, the sandbox needs a stand-in for Supabase (it cannot reach the real host).
 
 ## Milestone status
 
 - [x] Phase 0 — Project foundation (complete; live at https://thess-content-manager.vercel.app, sign-in confirmed by Thess on 12 Nov 2026)
 - [ ] Phase 1a — Fast first use (scope extended, see `docs/PRD-amendments.md`)
+  - [x] Part 1 built: Settings, voice seeding, AI adapter, Idea Inbox, drafts per platform, draft review, This Week board (awaiting Thess's test with a real API key)
+  - [ ] Part 2: Calendar, Home dashboard, live web check, trending ideas, follow-up questions, weekly plan button
 - [ ] Holidays and key dates, then Analytics
 - [ ] Designed graphics and carousel designer (app-drawn; no external image service)
 - [ ] Remaining PRD phases (research automation, learning, integrations)
