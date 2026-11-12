@@ -2,7 +2,7 @@
 
 A private web app that turns ideas and learning notes into review-ready social posts. See `docs/PRD.md` and `docs/PRD-amendments.md` for the full specification, and `CLAUDE.md` for the working rules.
 
-**Current milestone:** Phase 1a, part 1. Settings, voice guide, Idea Inbox, AI drafts for LinkedIn, Instagram + Facebook and TikTok, draft review and the This Week board. Calendar, Home dashboard and live web research come in part 2.
+**Current milestone:** Phase 1a (parts 1 and 2). Settings, voice guide, Idea Inbox with trending suggestions, AI drafts with an optional live web check, draft review with follow-up answers, the This Week board with a plan button, Calendar and the Home dashboard. Holidays, Analytics and designed graphics come next.
 
 ## Run it on your computer
 
@@ -79,6 +79,7 @@ After your first successful sign-in, under Authentication, Sign In / Providers, 
 ## How drafting works
 
 1. An idea is saved in `ideas` and never changed afterwards.
+1. If "Check the web first" is ticked, `src/lib/ai/research.ts` runs up to two live web searches and keeps the notes and source links with the draft. If the search fails, the draft is still written.
 2. `src/lib/ai/prompts.ts` builds the request from your settings, voice guide and the idea.
 3. `src/lib/ai/provider.ts` calls Claude and checks the answer against a fixed shape (`src/lib/ai/schemas.ts`). An answer that does not fit is retried once, then reported as an error. Nothing malformed is saved.
 4. `src/lib/content/drafts.ts` tidies the answer and it is saved in `posts`.
@@ -90,6 +91,8 @@ To change the model, set `AI_MODEL` in Vercel and redeploy. Prices for the estim
 
 - The sign-in link must be opened in the same browser that requested it.
 - Supabase's built-in email sender allows only a few emails per hour.
-- Drafts cannot be edited inside the app yet; copy and adjust on the platform.
+- Drafts cannot be edited by hand inside the app yet; copy and adjust on the platform.
+- The spend estimate counts AI tokens only, not the per-search fee for web checks.
+- Hashtags come from public web pages; the app cannot see each platform's own hashtag performance.
 - "Design a graphic" and "Design a carousel" only record your choice for now.
 - On a phone the menu sits above the page content.

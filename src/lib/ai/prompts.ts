@@ -73,18 +73,40 @@ export function toneInstruction(tone: Tone): string {
   }
 }
 
+export type IdeaType = "thought" | "learning_note" | "trending";
+
+const IDEA_KIND: Record<IdeaType, string> = {
+  thought: "the author's rough thought",
+  learning_note: "the author's learning note",
+  trending: "the suggested topic",
+};
+
 export function buildLinkedInPrompt(input: {
   idea: string;
-  inputType: "thought" | "learning_note";
+  inputType: IdeaType;
   tone: Tone;
   recentTitles: string[];
+  research?: string | null;
+  revision?: { currentPost: string; question: string; answer: string } | null;
 }): string {
-  return `Write a LinkedIn post, in "linkedin", from the author's ${input.inputType === "learning_note" ? "learning note" : "rough thought"} below.
+  return `Write a LinkedIn post, in "linkedin", from ${IDEA_KIND[input.inputType]} below.
 
 <idea>
 ${input.idea}
 </idea>
-
+${
+  input.inputType === "trending"
+    ? "\nThis topic was suggested from current news, so it is not the author's own words. Do not claim she has personal experience of it or put an opinion in her mouth. Write it as a clear, useful take that she can adjust, and use clarifying_question to ask for her own view.\n"
+    : ""
+}${
+  input.research
+    ? `\n<current_context note="Found by a live web search today. Use it to keep the post current. Only state a fact from it if it is clearly reported there, and never invent details beyond it. Hashtags seen in use may inform your hashtag choice.">\n${input.research}\n</current_context>\n`
+    : ""
+}${
+  input.revision
+    ? `\n<previous_draft>\n${input.revision.currentPost}\n</previous_draft>\n\nYou asked the author: "${input.revision.question}"\nShe answered: "${input.revision.answer}"\n\nRewrite the post using her answer. Keep what already worked. Use only the details she gave. Set clarifying_question to null unless something essential is still missing.\n`
+    : ""
+}
 ${toneInstruction(input.tone)}
 
 Choose short or long form to suit the idea, and set "length" accordingly. Recommend the best format and explain why in one sentence. Give exactly two alternative opening lines that take a different angle from the main one. Pick the pillar from the author's list.
@@ -127,4 +149,37 @@ ${
     : ""
 }
 Describe what you actually observe: sentence length and rhythm, vocabulary, how she opens and closes, how she uses humour, how personal she gets, punctuation habits, and things she never does. Use short headed sections and concrete do and don't examples drawn from the samples. Keep it under 500 words. Do not invent traits the samples do not show.`;
+}
+
+export function buildResearchQuestion(idea: string, today: string): string {
+  return `Today is ${today}. Search the web for what is recent (roughly the last 30 days) and relevant to the topic of this idea, written by a professional who works in AI, automation and data:
+
+<idea>
+${idea}
+</idea>
+
+Report in under 180 words:
+- 2 to 4 short notes on recent developments, announcements or discussions, each with its date.
+- Hashtags you saw in actual use for this topic on public pages (only ones you saw).
+If nothing recent and relevant turns up, say so plainly. Do not pad. Do not present old news as new.`;
+}
+
+export function buildTrendingQuestion(today: string, keywords: string[]): string {
+  return `Today is ${today}. Search the web for what people are discussing this week in these areas: ${keywords.slice(0, 10).join(", ")}; also AI at work, automation, data analytics and relatable moments of working life in tech.
+
+List 6 to 8 items. For each give one plain sentence on what is being discussed and its date. Include a mix of serious developments and lighter, relatable talking points. Skip anything older than about two weeks.`;
+}
+
+export function buildTrendingIdeasPrompt(notes: string, sources: { title: string; url: string }[]): string {
+  return `From the research notes below, suggest up to 5 post topics for the author.
+
+<research_notes>
+${notes}
+</research_notes>
+
+<sources>
+${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
+</sources>
+
+Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes. Skip anything that does not fit her positioning.`;
 }

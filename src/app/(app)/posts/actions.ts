@@ -3,11 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { buildSocialPrompt, buildSystemPrompt, buildTikTokPrompt } from "@/lib/ai/prompts";
+import {
+  buildLinkedInPrompt,
+  buildSocialPrompt,
+  buildSystemPrompt,
+  buildTikTokPrompt,
+} from "@/lib/ai/prompts";
 import { AiError, generateStructured, type AiUsage } from "@/lib/ai/provider";
-import { SocialDraftSchema, TikTokDraftSchema } from "@/lib/ai/schemas";
+import { CombinedDraftSchema, SocialDraftSchema, TikTokDraftSchema } from "@/lib/ai/schemas";
 import { requireOwner } from "@/lib/auth/session";
-import { socialRow, tikTokRow } from "@/lib/content/drafts";
+import { linkedInRow, socialRow, tikTokRow } from "@/lib/content/drafts";
 import { getBrandContext, logUsage } from "@/lib/data";
 import { isValidDate, lagosToday, sameDayNextWeek } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -17,12 +22,16 @@ const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim()
 function refresh(postId: string) {
   revalidatePath(`/posts/${postId}`);
   revalidatePath("/week");
+  revalidatePath("/calendar");
+  revalidatePath("/");
 }
 
 /** Where to go back to after an action: only paths inside the app are accepted. */
 function backTo(form: FormData, fallback: string): string {
   const target = text(form, "back");
-  return /^\/(week|posts\/[0-9a-f-]{36})(\?week=\d{4}-\d{2}-\d{2})?$/.test(target) ? target : fallback;
+  return /^\/(week(\?week=\d{4}-\d{2}-\d{2})?|calendar(\?month=\d{4}-\d{2})?|posts\/[0-9a-f-]{36})$/.test(target)
+    ? target
+    : fallback;
 }
 
 const OutcomeSchema = z.enum(["posted", "next_week", "schedule", "discard", "undo"]);
@@ -178,4 +187,117 @@ export async function addAdaptation(form: FormData) {
   if (error || !post) redirect(`/posts/${parent.id}?error=save`);
   refresh(parent.id);
   redirect(`/posts/${post.id}`);
+}
+
+/**
+ * Rewrites a draft using the author's answer to the AI's follow-up question.
+ * The previous wording is saved in post_versions first, so nothing is lost.
+ */
+export async function answerQuestion(form: FormData) {
+  const owner = await requireOwner();
+  const id = z.uuid().safeParse(text(form, "id"));
+  const answer = text(form, "answer").slice(0, 3000);
+  if (!id.success) redirect("/week");
+  if (answer.length < 3) redirect(`/posts/${id.data}?error=answer`);
+
+  const supabase = await createClient();
+  const { data: post } = await supabase.from("posts").select("*").eq("id", id.data).maybeSingle();
+  if (!post || post.platform !== "linkedin") redirect("/week");
+  const extra = (post.structured_content ?? {}) as Record<string, unknown>;
+  const question = typeof extra.clarifying_question === "string" ? extra.clarifying_question : "";
+  if (!question) redirect(`/posts/${post.id}`);
+
+  const { data: idea } = post.source_idea_id
+    ? await supabase
+        .from("ideas")
+        .select("raw_content, input_type, tone")
+        .eq("id", post.source_idea_id)
+        .maybeSingle()
+    : { data: null };
+
+  const brand = await getBrandContext(supabase, owner.id);
+  let result;
+  try {
+    result = await generateStructured({
+      system: buildSystemPrompt(brand),
+      prompt: buildLinkedInPrompt({
+        idea: idea?.raw_content ?? post.body,
+        inputType: idea?.input_type ?? "thought",
+        tone: idea?.tone ?? "auto",
+        recentTitles: [],
+        research:
+          extra.research && typeof extra.research === "object"
+            ? String((extra.research as { notes?: string }).notes ?? "") || null
+            : null,
+        revision: { currentPost: post.body, question, answer },
+      }),
+      schema: CombinedDraftSchema,
+      maxTokens: 10000,
+    });
+  } catch (error) {
+    const code = error instanceof AiError ? error.code : "failed";
+    await logUsage(supabase, owner.id, "revise_draft", null, code);
+    redirect(`/posts/${post.id}?error=ai-${code}`);
+  }
+  await logUsage(supabase, owner.id, "revise_draft", result.usage, "ok");
+
+  const { data: child } = await supabase
+    .from("posts")
+    .select("id, body, structured_content")
+    .eq("parent_post_id", post.id)
+    .eq("platform", "instagram_facebook")
+    .maybeSingle();
+
+  // Keep the old wording before replacing it.
+  for (const old of [post, child]) {
+    if (!old) continue;
+    const { data: last } = await supabase
+      .from("post_versions")
+      .select("version_number")
+      .eq("post_id", old.id)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { error } = await supabase.from("post_versions").insert({
+      profile_id: owner.id,
+      post_id: old.id,
+      version_number: (last?.version_number ?? 0) + 1,
+      body: old.body,
+      structured_content: old.structured_content ?? {},
+      change_note: "Before rewrite from follow-up answer",
+    });
+    if (error) redirect(`/posts/${post.id}?error=save`);
+  }
+
+  const linkedIn = linkedInRow(result.data.linkedin, brand);
+  const previousAnswers = Array.isArray(extra.answers) ? extra.answers : [];
+  await supabase
+    .from("posts")
+    .update({
+      ...linkedIn,
+      structured_content: {
+        ...linkedIn.structured_content,
+        research: extra.research ?? null,
+        answers: [...previousAnswers, { question, answer }],
+      },
+    })
+    .eq("id", post.id);
+
+  const social = socialRow(result.data.instagram_facebook, brand);
+  if (child) {
+    await supabase.from("posts").update(social).eq("id", child.id);
+  } else {
+    await supabase.from("posts").insert({
+      ...social,
+      profile_id: owner.id,
+      parent_post_id: post.id,
+      source_idea_id: post.source_idea_id,
+      pillar: linkedIn.pillar,
+      objective: linkedIn.objective,
+      tone: linkedIn.tone,
+      scheduled_for: post.scheduled_for,
+    });
+  }
+  refresh(post.id);
+  redirect(`/posts/${post.id}?saved=rewritten`);
 }

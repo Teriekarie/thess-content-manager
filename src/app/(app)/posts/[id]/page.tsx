@@ -11,7 +11,7 @@ import { PLATFORMS, type Platform } from "@/lib/content/defaults";
 import { asStringArray } from "@/lib/content/text";
 import { formatLong, lagosToday } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { addAdaptation, rateDraft, setVisualChoice } from "../actions";
+import { addAdaptation, answerQuestion, rateDraft, setVisualChoice } from "../actions";
 
 export const maxDuration = 120;
 
@@ -24,6 +24,36 @@ const VISUALS = [
 
 function list(value: unknown): string[] {
   return asStringArray(value);
+}
+
+type Research = {
+  status: string;
+  checked_on: string | null;
+  notes: string;
+  sources: { title: string; url: string; age: string | null }[];
+};
+
+/** Reads the saved web-check record, keeping only well-formed http links. */
+function readResearch(value: unknown): Research | null {
+  if (!value || typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
+  const sources = Array.isArray(r.sources)
+    ? r.sources
+        .filter((s): s is { title?: unknown; url: string; age?: unknown } =>
+          Boolean(s) && typeof s === "object" && typeof (s as { url?: unknown }).url === "string")
+        .filter((s) => /^https?:\/\//.test(s.url))
+        .map((s) => ({
+          title: typeof s.title === "string" ? s.title : "",
+          url: s.url,
+          age: typeof s.age === "string" ? s.age : null,
+        }))
+    : [];
+  return {
+    status: typeof r.status === "string" ? r.status : "skipped",
+    checked_on: typeof r.checked_on === "string" ? r.checked_on : null,
+    notes: typeof r.notes === "string" ? r.notes : "",
+    sources,
+  };
 }
 
 export default async function PostPage({
@@ -66,10 +96,13 @@ export default async function PostPage({
   const altHooks = list(post.alt_hooks);
   const extra = (post.structured_content ?? {}) as Record<string, unknown>;
   const bannedFound = list(extra.banned_found);
+  const research = readResearch(extra.research);
   const lastRating = ratings?.[0];
   const errorMessage = error
     ? error === "date"
       ? "Please choose a valid date."
+      : error === "answer"
+        ? "Please type an answer first."
       : error.startsWith("ai-")
         ? AI_ERROR_MESSAGES[error.slice(3) as AiErrorCode]
         : "That could not be saved. Please try again."
@@ -114,6 +147,9 @@ export default async function PostPage({
       </header>
 
       {saved === "rating" ? <Notice kind="ok">Thanks. Your rating is saved.</Notice> : null}
+      {saved === "rewritten" ? (
+        <Notice kind="ok">Draft rewritten with your answer. The earlier wording is saved.</Notice>
+      ) : null}
       {errorMessage ? <Notice kind="warn">{errorMessage}</Notice> : null}
       {post.safety_status !== "clear" ? (
         <Notice kind="warn">
@@ -190,13 +226,18 @@ export default async function PostPage({
             </section>
           ) : null}
 
-          {typeof extra.clarifying_question === "string" && extra.clarifying_question ? (
+          {platform === "linkedin" && typeof extra.clarifying_question === "string" && extra.clarifying_question ? (
             <section aria-label="A question from the AI" className={`${card} flex flex-col gap-2`}>
               <h2 className={h2}>One question that could make this stronger</h2>
-              <p>{extra.clarifying_question}</p>
-              <p className="text-sm text-muted">
-                For now, add the detail to a new idea and create another draft. Answering here arrives in the next update.
-              </p>
+              <form action={answerQuestion} className="flex flex-col gap-3">
+                <input type="hidden" name="id" value={post.id} />
+                <label htmlFor="answer">{extra.clarifying_question}</label>
+                <textarea id="answer" name="answer" rows={3} required className={field}
+                  placeholder="A few words is enough. The draft is rewritten with your answer and the old wording is kept." />
+                <div>
+                  <SubmitButton className={btnDark} pendingLabel="Rewriting… up to a minute">Update the draft</SubmitButton>
+                </div>
+              </form>
             </section>
           ) : null}
 
@@ -247,6 +288,45 @@ export default async function PostPage({
               <div className="flex flex-wrap gap-2">
                 {keywords.map((k) => <span key={k} className={chip}>{k}</span>)}
               </div>
+            </section>
+          ) : null}
+
+          {research && research.status !== "skipped" ? (
+            <section aria-label="What is current" className={`${card} flex flex-col gap-2.5`}>
+              <h2 className={h2}>What is current</h2>
+              {research.status === "done" ? (
+                <>
+                  <p className="text-sm text-muted">
+                    Web checked on {research.checked_on ? formatLong(research.checked_on) : "the day it was written"}, before writing.
+                  </p>
+                  {research.sources.length ? (
+                    <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
+                      {research.sources.map((source) => (
+                        <li key={source.url}>
+                          <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">
+                            {source.title || source.url}
+                          </a>
+                          {source.age ? <span className="text-muted"> · {source.age}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm">The search found nothing recent and relevant.</p>
+                  )}
+                  {research.notes ? (
+                    <details className="rounded-lg bg-ground p-3 text-sm">
+                      <summary className="cursor-pointer font-semibold">What the search found</summary>
+                      <p className="mt-2 whitespace-pre-line">{research.notes}</p>
+                    </details>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-sm text-warn">
+                  {research.status === "over_budget"
+                    ? "The web check was skipped because your monthly AI budget is used up."
+                    : "The web check did not work this time, so this draft was written without it."}
+                </p>
+              )}
             </section>
           ) : null}
 

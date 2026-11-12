@@ -70,3 +70,15 @@ export const VoiceGuideSchema = z.object({
   summary: z.string().describe("Two sentences describing the voice"),
 });
 export type VoiceGuideDraft = z.infer<typeof VoiceGuideSchema>;
+
+export const TrendingIdeasSchema = z.object({
+  ideas: z.array(
+    z.object({
+      topic: z.string().describe("What is being discussed, in one plain sentence, with its date if known"),
+      angle: z.string().describe("A question or angle the author could respond to. Do not write her opinion for her."),
+      tone: z.enum(["funny", "opinion", "school_of_thought", "serious"]),
+      source_url: z.string().describe("Copied exactly from the provided source list"),
+    }),
+  ),
+});
+export type TrendingIdeas = z.infer<typeof TrendingIdeasSchema>;

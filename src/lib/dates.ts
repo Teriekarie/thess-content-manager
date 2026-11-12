@@ -89,3 +89,29 @@ export function nextPostingDate(
 export function sameDayNextWeek(date: string): string {
   return addDays(date, 7);
 }
+
+export function isValidMonth(month: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+}
+
+export function addMonths(month: string, count: number): string {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + count);
+  return d.toISOString().slice(0, 7);
+}
+
+export function formatMonth(month: string): string {
+  return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+}
+
+/** The cells of a month calendar starting on Monday: a date, or null for a blank cell. */
+export function monthGrid(month: string): (string | null)[] {
+  const first = `${month}-01`;
+  const blanks = (weekday(first) + 6) % 7;
+  const cells: (string | null)[] = Array.from({ length: blanks }, () => null);
+  for (let date = first; date.slice(0, 7) === month; date = addDays(date, 1)) cells.push(date);
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}

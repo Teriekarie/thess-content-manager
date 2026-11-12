@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { OutcomeButtons } from "@/components/outcome-buttons";
-import { btnPrimary, btnSecondary, card, chip, chipDark, h1, h2 } from "@/components/ui";
+import { btnDark, btnPrimary, btnSecondary, card, chip, chipDark, h1, h2 } from "@/components/ui";
 import { requireOwner } from "@/lib/auth/session";
 import { PLATFORMS, type Platform } from "@/lib/content/defaults";
 import {
@@ -14,6 +14,10 @@ import {
   weekStart,
 } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
+import { SubmitButton } from "@/components/submit-button";
+import { generatePlan } from "./actions";
+
+export const maxDuration = 120;
 
 type Row = {
   id: string;
@@ -35,13 +39,30 @@ const VISUAL: Record<string, string> = {
 };
 const ORDER: Platform[] = ["linkedin", "instagram_facebook", "tiktok"];
 
+function describePlan(plan: string | undefined): { kind: "ok" | "warn"; text: string } | null {
+  if (!plan) return null;
+  if (plan === "full") return { kind: "ok", text: "Every posting day this week already has a post." };
+  if (plan === "no-ideas") {
+    return { kind: "warn", text: "There are no new ideas to draft from. Add some in the Idea Inbox first." };
+  }
+  const match = plan.match(/^(\d+)-(\d+)$/);
+  if (!match) return null;
+  const made = Number(match[1]);
+  const failed = Number(match[2]);
+  if (failed === 0) return { kind: "ok", text: `${made} draft${made === 1 ? "" : "s"} added to this week.` };
+  return {
+    kind: "warn",
+    text: `${made} draft${made === 1 ? "" : "s"} added. ${failed} could not be written, so the plan is partial. Press the button again to retry.`,
+  };
+}
+
 export default async function WeekPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; error?: string }>;
+  searchParams: Promise<{ week?: string; error?: string; plan?: string }>;
 }) {
   const owner = await requireOwner();
-  const { week, error } = await searchParams;
+  const { week, error, plan } = await searchParams;
   const today = lagosToday();
   const start = weekStart(week && isValidDate(week) ? week : today);
   const days = weekDates(start);
@@ -69,6 +90,8 @@ export default async function WeekPage({
   const posts = (inWeek ?? []) as Row[];
   const active = posts.filter((p) => p.status !== "discarded");
   const counts = ORDER.map((p) => `${PLATFORMS[p]} ${active.filter((x) => x.platform === p).length}`);
+
+  const planMessage = describePlan(plan);
 
   const Card = ({ post }: { post: Row }) => (
     <article className={`flex flex-wrap gap-4 rounded-xl border border-line bg-surface p-5 ${
@@ -109,6 +132,21 @@ export default async function WeekPage({
           <Link href="/inbox" className={btnPrimary}>Add an idea</Link>
         </div>
       </header>
+
+      <section aria-label="Plan this week" className={`${card} flex flex-wrap items-center justify-between gap-4`}>
+        <p className="flex-[1_1_320px] text-sm text-muted">
+          Fill the free posting days (Tuesday, Wednesday, Thursday) with drafts from your saved ideas,
+          oldest first. Days that already have a post are left alone.
+        </p>
+        <form action={generatePlan}>
+          <input type="hidden" name="week" value={start} />
+          <SubmitButton className={btnDark} pendingLabel="Writing the week… up to a minute">
+            Generate this week&apos;s plan
+          </SubmitButton>
+        </form>
+      </section>
+
+      {planMessage ? <Notice kind={planMessage.kind}>{planMessage.text}</Notice> : null}
 
       {error === "date" ? <Notice kind="warn">Please choose a valid date.</Notice> : null}
 

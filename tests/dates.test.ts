@@ -51,3 +51,24 @@ describe("nextPostingDate", () => {
     expect(nextPostingDate("2026-11-13", [])).toBe("2026-11-17"); // Friday -> Tuesday
   });
 });
+
+import { addMonths, isValidMonth, monthGrid } from "@/lib/dates";
+
+describe("month calendar", () => {
+  it("lays November 2026 out from Monday, with Sunday the 1st in the first row", () => {
+    const cells = monthGrid("2026-11");
+    expect(cells).toHaveLength(42);
+    expect(cells.slice(0, 7)).toEqual([null, null, null, null, null, null, "2026-11-01"]);
+    expect(cells[7]).toBe("2026-11-02");
+    expect(cells.filter(Boolean)).toHaveLength(30);
+  });
+  it("handles a month that starts on Monday and February", () => {
+    expect(monthGrid("2027-02")[0]).toBe("2027-02-01");
+    expect(monthGrid("2027-02").filter(Boolean)).toHaveLength(28);
+  });
+  it("moves between months across a year end", () => {
+    expect(addMonths("2026-12", 1)).toBe("2027-01");
+    expect(addMonths("2027-01", -1)).toBe("2026-12");
+    expect(isValidMonth("2026-13")).toBe(false);
+  });
+});
