@@ -79,7 +79,7 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 
 ## Milestone status
 
-- [x] Phase 0 — Project foundation (built; deployment waiting on GitHub connection)
+- [x] Phase 0 — Project foundation (complete; live at https://thess-content-manager.vercel.app, sign-in confirmed by Thess on 12 Nov 2026)
 - [ ] Phase 1a — Fast first use (scope extended, see `docs/PRD-amendments.md`)
 - [ ] Holidays and key dates, then Analytics
 - [ ] Designed graphics and carousel designer (app-drawn; no external image service)
