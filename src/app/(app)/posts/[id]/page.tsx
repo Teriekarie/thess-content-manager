@@ -128,7 +128,7 @@ export default async function PostPage({
   const copyText = platform === "tiktok" ? String(extra.caption ?? "") : post.body;
 
   return (
-    <div className="flex max-w-[1000px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header className="flex flex-col gap-2">
         <Link href="/week" className="flex min-h-11 items-center self-start font-medium text-muted">
           Back to this week
@@ -302,7 +302,7 @@ export default async function PostPage({
                 ))}
               </form>
               {post.visual_choice === "generate_image" ? (
-                <GraphicStudio initialText={cardText} footer={footer} title={post.title} />
+                <GraphicStudio initialText={cardText} footer={footer} handle={settings.handle} title={post.title} />
               ) : null}
               {post.visual_choice === "carousel" && carousel.length === 0 ? (
                 <form action={writeCarousel} className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
@@ -316,7 +316,7 @@ export default async function PostPage({
                 </form>
               ) : null}
               {post.visual_choice === "carousel" && carousel.length > 0 ? (
-                <CarouselStudio slides={carousel} footer={footer} title={post.title} />
+                <CarouselStudio slides={carousel} footer={footer} handle={settings.handle} title={post.title} />
               ) : null}
             </section>
           ) : null}

@@ -6,6 +6,7 @@ import type { AiUsage } from "@/lib/ai/provider";
 import {
   DEFAULT_AUDIENCE,
   DEFAULT_BANNED_PHRASES,
+  DEFAULT_HANDLE,
   DEFAULT_KEYWORDS,
   DEFAULT_PILLARS,
   DEFAULT_POSITIONING,
@@ -14,6 +15,7 @@ import { asStringArray } from "@/lib/content/text";
 
 export type BrandSettings = {
   positioning: string;
+  handle: string;
   bio: string;
   audience: string[];
   pillars: string[];
@@ -36,6 +38,7 @@ export async function getBrandSettings(
   if (!data) {
     return {
       positioning: DEFAULT_POSITIONING,
+      handle: DEFAULT_HANDLE,
       bio: "",
       audience: DEFAULT_AUDIENCE,
       pillars: DEFAULT_PILLARS,
@@ -47,6 +50,7 @@ export async function getBrandSettings(
   }
   return {
     positioning: data.positioning ?? "",
+    handle: data.handle ?? "",
     bio: data.professional_bio ?? "",
     audience: asStringArray(data.audience_priorities),
     pillars: asStringArray(data.pillars),

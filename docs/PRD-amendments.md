@@ -40,3 +40,5 @@ Agreed with Thess on 11 November 2026 after reviewing the design preview. Where 
 - **Look and feel (12 November 2026).** Thess asked for a warmer, less plain design. A starting palette (plum sidebar, violet accent, gold highlight) is set in `src/app/globals.css`. It is not a final brand kit and can be replaced there.
 - **Trending ideas (12 November 2026).** Must cover a wide range: AI, automation, data, careers, African tech and working life, with no two suggestions about the same company or product.
 - **Weekly plan (12 November 2026).** When this week's posting days have passed or are full, the plan button fills next week instead.
+- **Handle on graphics (12 November 2026).** Thess's handle is @teriekarie. It is stored in `brand_settings.handle`, editable in Settings, and drawn on every graphic and carousel slide.
+- **Holidays and dates (12 November 2026).** Not only Nigerian dates: international days, global occasions, cultural and shopping moments and tech events, over the next three months.

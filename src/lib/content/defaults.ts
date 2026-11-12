@@ -2,6 +2,9 @@
 
 export const DEFAULT_POSITIONING = "AI, Automation & Data Solutions";
 
+/** Supplied by Thess. Shown on designed graphics. Editable in Settings. */
+export const DEFAULT_HANDLE = "@teriekarie";
+
 export const DEFAULT_AUDIENCE = [
   "Recruiters and talent partners",
   "Hiring managers and business leaders",

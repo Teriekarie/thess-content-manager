@@ -63,13 +63,13 @@ export default async function DatesPage({
     : undefined;
 
   return (
-    <div className="flex max-w-[920px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex-[1_1_320px]">
           <h1 className={h1}>Holidays and key dates</h1>
           <p className="mt-1 text-muted">
-            Upcoming Nigerian holidays, global occasions and tech days for the next ten weeks. Each
-            date is confirmed by a web page you can open.
+            International days, global occasions, tech events and Nigerian holidays for the next three
+            months. Each date is confirmed by a web page you can open.
           </p>
         </div>
         <form action={findDates}>
@@ -80,6 +80,7 @@ export default async function DatesPage({
       </header>
 
       {saved === "found" ? <Notice kind="ok">Dates updated. Review them below.</Notice> : null}
+      {saved === "none-new" ? <Notice kind="ok">No new dates this time. Everything found is already listed.</Notice> : null}
       {message ? <Notice kind="warn">{message}</Notice> : null}
 
       {shown.length === 0 ? (

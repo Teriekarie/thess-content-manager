@@ -65,7 +65,7 @@ export default async function SettingsPage({
   const message = errorText(error);
 
   return (
-    <div className="flex max-w-[920px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header>
         <h1 className={h1}>Settings</h1>
         <p className="mt-1 text-muted">
@@ -86,6 +86,10 @@ export default async function SettingsPage({
         <div className="flex flex-col gap-1.5">
           <label htmlFor="positioning" className={label}>Positioning</label>
           <input id="positioning" name="positioning" defaultValue={settings.positioning} className={field} />
+        </div>
+        <div className="flex flex-col gap-1.5 md:max-w-[320px]">
+          <label htmlFor="handle" className={label}>Your handle (shown on graphics)</label>
+          <input id="handle" name="handle" defaultValue={settings.handle} placeholder="@yourname" className={field} />
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="bio" className={label}>Short professional bio</label>

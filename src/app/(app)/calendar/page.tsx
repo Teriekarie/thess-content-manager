@@ -87,7 +87,7 @@ export default async function CalendarPage({
   );
 
   return (
-    <div className="flex max-w-[960px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className={h1}>Calendar</h1>

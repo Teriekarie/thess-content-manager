@@ -46,3 +46,15 @@ export function buildLearningNote(fields: ReadonlyArray<{ label: string; value: 
     .map((f) => `${f.label}:\n${f.value.trim()}`)
     .join("\n\n");
 }
+
+/** "@name" form: one leading @, no spaces. Empty stays empty. */
+export function normaliseHandle(raw: string): string {
+  const cleaned = raw.trim().replace(/^@+/, "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 40);
+  return cleaned ? `@${cleaned}` : "";
+}
+
+/** Same day and same first two words count as the same occasion ("Christmas Day (Nigeria)" = "Christmas Day"). */
+export function eventKey(date: string, name: string): string {
+  const words = name.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+  return `${date}|${words.slice(0, 2).join(" ")}`;
+}

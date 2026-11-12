@@ -44,7 +44,7 @@ export default async function HomePage() {
   ] as const;
 
   return (
-    <div className="flex max-w-[960px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-5 rounded-3xl bg-plum px-7 py-8 text-white">
         <div className="flex-[1_1_320px]">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-gold">Your content desk</p>

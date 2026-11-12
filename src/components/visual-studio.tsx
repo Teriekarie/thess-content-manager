@@ -32,7 +32,13 @@ function fontFamilies() {
   };
 }
 
-function drawSlide(canvas: HTMLCanvasElement, slide: Slide, themeKey: ThemeKey, footer: string) {
+function drawSlide(
+  canvas: HTMLCanvasElement,
+  slide: Slide,
+  themeKey: ThemeKey,
+  footer: string,
+  handle: string,
+) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const theme = THEMES[themeKey];
@@ -116,19 +122,30 @@ function drawSlide(canvas: HTMLCanvasElement, slide: Slide, themeKey: ThemeKey, 
   // Footer
   ctx.fillStyle = theme.soft;
   ctx.fillRect(PAD, H - PAD - 56, width, 2);
-  ctx.font = `600 30px ${fonts.body}`;
-  ctx.fillText(footer.slice(0, 60), PAD, H - PAD - 34);
+  if (handle) {
+    ctx.fillStyle = theme.text;
+    ctx.font = `700 34px ${fonts.body}`;
+    ctx.fillText(handle, PAD, H - PAD - 36);
+    ctx.fillStyle = theme.soft;
+    ctx.font = `500 26px ${fonts.body}`;
+    ctx.textAlign = "right";
+    ctx.fillText(footer.slice(0, 44), W - PAD, H - PAD - 30);
+    ctx.textAlign = "left";
+  } else {
+    ctx.font = `600 30px ${fonts.body}`;
+    ctx.fillText(footer.slice(0, 60), PAD, H - PAD - 34);
+  }
 }
 
-function SlideCanvas({ slide, theme, footer, fileName }: {
-  slide: Slide; theme: ThemeKey; footer: string; fileName: string;
+function SlideCanvas({ slide, theme, footer, handle, fileName }: {
+  slide: Slide; theme: ThemeKey; footer: string; handle: string; fileName: string;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     const draw = () => {
-      if (!cancelled && ref.current) drawSlide(ref.current, slide, theme, footer);
+      if (!cancelled && ref.current) drawSlide(ref.current, slide, theme, footer, handle);
     };
     draw();
     // Draw again once the web fonts have loaded, so the picture uses the right typeface.
@@ -136,7 +153,7 @@ function SlideCanvas({ slide, theme, footer, fileName }: {
     return () => {
       cancelled = true;
     };
-  }, [slide, theme, footer]);
+  }, [slide, theme, footer, handle]);
 
   function download() {
     ref.current?.toBlob((blob) => {
@@ -182,8 +199,8 @@ const slug = (text: string) =>
   text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "post";
 
 /** One designed card from a short line of text. Editing the text redraws it. */
-export function GraphicStudio({ initialText, footer, title }: {
-  initialText: string; footer: string; title: string;
+export function GraphicStudio({ initialText, footer, handle, title }: {
+  initialText: string; footer: string; handle: string; title: string;
 }) {
   const [text, setText] = useState(initialText);
   const [theme, setTheme] = useState<ThemeKey>("plum");
@@ -207,15 +224,15 @@ export function GraphicStudio({ initialText, footer, title }: {
       </div>
       <div className="w-full max-w-[280px]">
         <SlideCanvas slide={{ kind: quote ? "quote" : "cover", headline: text || " " }} theme={theme}
-          footer={footer} fileName={`${slug(title)}.png`} />
+          footer={footer} handle={handle} fileName={`${slug(title)}.png`} />
       </div>
     </div>
   );
 }
 
 /** The slides of a carousel, drawn from the saved slide text. */
-export function CarouselStudio({ slides, footer, title }: {
-  slides: Slide[]; footer: string; title: string;
+export function CarouselStudio({ slides, footer, handle, title }: {
+  slides: Slide[]; footer: string; handle: string; title: string;
 }) {
   const [theme, setTheme] = useState<ThemeKey>("plum");
   const grid = useRef<HTMLDivElement>(null);
@@ -234,7 +251,7 @@ export function CarouselStudio({ slides, footer, title }: {
       <div ref={grid} className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
         {slides.map((slide, i) => (
           <SlideCanvas key={`${i}-${slide.headline}`} slide={slide} theme={theme} footer={footer}
-            fileName={`${slug(title)}-${String(i + 1).padStart(2, "0")}.png`} />
+            handle={handle} fileName={`${slug(title)}-${String(i + 1).padStart(2, "0")}.png`} />
         ))}
       </div>
       <p className="text-[13px] text-muted">

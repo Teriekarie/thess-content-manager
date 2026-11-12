@@ -5,6 +5,8 @@ import { LinkedInDraftSchema } from "@/lib/ai/schemas";
 import { linkedInRow, matchPillar } from "@/lib/content/drafts";
 import {
   buildLearningNote,
+  eventKey,
+  normaliseHandle,
   findBannedPhrases,
   normaliseHashtags,
   parseLines,
@@ -122,5 +124,20 @@ describe("cost estimate", () => {
     expect(estimateCost("claude-opus-5-5", 1_000_000, 1_000_000)).toBe(24);
     expect(estimateCost("claude-haiku-5-5", 3000, 2000)).toBeCloseTo(0.0013, 6);
     expect(estimateCost("some-other-model", 1000, 1000)).toBeNull();
+  });
+});
+
+describe("handles and occasions", () => {
+  it("tidies a handle to one leading @", () => {
+    expect(normaliseHandle("teriekarie")).toBe("@teriekarie");
+    expect(normaliseHandle(" @@terie karie! ")).toBe("@teriekarie");
+    expect(normaliseHandle("")).toBe("");
+  });
+  it("treats the same occasion on the same day as one", () => {
+    expect(eventKey("2026-12-25", "Christmas Day (Nigerian public holiday)")).toBe(
+      eventKey("2026-12-25", "Christmas Day"),
+    );
+    expect(eventKey("2026-12-25", "Christmas Day")).not.toBe(eventKey("2026-12-26", "Christmas Day"));
+    expect(eventKey("2026-12-10", "Human Rights Day")).not.toBe(eventKey("2026-12-10", "Nobel Prize Day"));
   });
 });

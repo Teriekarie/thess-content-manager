@@ -63,7 +63,7 @@ export default async function InboxPage({
   const message = errorText(error);
 
   return (
-    <div className="flex max-w-[920px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header>
         <h1 className={h1}>Idea Inbox</h1>
         <p className="mt-1 text-muted">

@@ -201,13 +201,13 @@ Each suggestion needs a topic, an angle phrased as a question she could answer i
 }
 
 export function buildEventsQuestion(today: string, until: string): string {
-  return `Today is ${today}. Search the web for dates between ${today} and ${until} in these groups:
-- Nigerian public holidays and major cultural occasions.
-- International days about technology, AI, data, cybersecurity, digital inclusion, women in tech and work.
-- Major technology conferences and product events.
-- Widely marked global occasions.
+  return `Today is ${today}. Search the web for notable dates between ${today} and ${until}. Run separate searches for these groups:
+- International and United Nations days (for example days about technology, AI, data, privacy, cybersecurity, education, women, disability, human rights, volunteering, health).
+- Widely marked global occasions and cultural moments (religious festivals, year-end and new-year moments, big shopping days such as Black Friday and Cyber Monday).
+- Major technology conferences, product events and industry weeks.
+- Nigerian public holidays and cultural occasions.
 
-List each with its exact date and the page that confirms it. Only include dates you found confirmed on a page. Note when a holiday's date is still provisional (for example, dates set by moon sighting).`;
+List as many as you find, aiming for 15 or more, each with its exact date and the page that confirms it. Only include dates you found confirmed on a page. Note when a date is still provisional (for example, dates set by moon sighting).`;
 }
 
 export function buildEventsPrompt(notes: string, sources: { title: string; url: string }[], today: string, until: string): string {
@@ -221,7 +221,7 @@ ${notes}
 ${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
 </sources>
 
-Include public holidays and occasions she would naturally greet her audience on, and tech dates with a real link to her field. Leave out unrelated awareness days. Use only dates stated in the notes, in YYYY-MM-DD form, and copy each source_url exactly from the list. At most 12.`;
+Cast a wide net. Include: public holidays and global occasions she would naturally greet her audience on; international days she can tie to her work or her audience, even loosely (education, women in tech, privacy, human rights, volunteering); big cultural and shopping moments; and tech events. Give each one an honest angle: a link to AI, automation, data, careers or working life, or simply a warm greeting. Leave out only days that have nothing she could sensibly say about them. Mix worldwide and Nigerian dates. Use only dates stated in the notes, in YYYY-MM-DD form, and copy each source_url exactly from the list. Up to 20, one entry per occasion.`;
 }
 
 export function buildCarouselPrompt(postBody: string): string {

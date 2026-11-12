@@ -7,7 +7,7 @@ import { buildSystemPrompt, buildVoiceGuidePrompt } from "@/lib/ai/prompts";
 import { AiError, generateStructured, type AiUsage } from "@/lib/ai/provider";
 import { VoiceGuideSchema } from "@/lib/ai/schemas";
 import { requireOwner } from "@/lib/auth/session";
-import { parseLines } from "@/lib/content/text";
+import { normaliseHandle, parseLines } from "@/lib/content/text";
 import { getBrandContext, logUsage } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +26,7 @@ export async function saveSettings(form: FormData) {
   const { error } = await supabase.from("brand_settings").upsert({
     profile_id: owner.id,
     positioning: text(form, "positioning").slice(0, 500),
+    handle: normaliseHandle(text(form, "handle")),
     professional_bio: text(form, "bio").slice(0, 3000),
     audience_priorities: parseLines(text(form, "audience"), 30),
     pillars: parseLines(text(form, "pillars"), 20),

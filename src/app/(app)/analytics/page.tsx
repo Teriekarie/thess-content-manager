@@ -111,7 +111,7 @@ export default async function AnalyticsPage({
   const cell = "px-2 py-3 text-right";
 
   return (
-    <div className="flex max-w-[1000px] flex-col gap-6">
+    <div className="flex max-w-[1240px] flex-col gap-6">
       <header>
         <h1 className={h1}>Analytics</h1>
         <p className="mt-1 text-muted">

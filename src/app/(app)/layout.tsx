@@ -33,7 +33,7 @@ export default async function AppLayout({
         </form>
       </nav>
       <main className="min-w-0 flex-1 p-5 md:p-10">
-        {children}
+        <div className="mx-auto w-full max-w-[1240px]">{children}</div>
         <form action={signOut} className="mt-10 border-t border-line pt-4 md:hidden">
           <span className="text-sm text-muted">{owner.email} · </span>
           <button type="submit" className="min-h-11 text-sm font-semibold underline">Sign out</button>

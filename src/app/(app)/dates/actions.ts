@@ -9,6 +9,7 @@ import { searchWeb, type WebSource } from "@/lib/ai/research";
 import { EventsSchema, type EventList } from "@/lib/ai/schemas";
 import { requireOwner } from "@/lib/auth/session";
 import { getBrandContext, logUsage } from "@/lib/data";
+import { eventKey } from "@/lib/content/text";
 import { addDays, formatLong, isValidDate, lagosToday } from "@/lib/dates";
 import { draftFromIdea, overBudget } from "@/lib/drafting";
 import { createClient } from "@/lib/supabase/server";
@@ -22,21 +23,21 @@ export async function findDates() {
   if (await overBudget(supabase, owner.id)) redirect("/dates?error=budget");
 
   const today = lagosToday();
-  const until = addDays(today, 70);
+  const until = addDays(today, 90);
   const brand = await getBrandContext(supabase, owner.id);
   let events: EventList["events"];
   let sources: WebSource[];
   try {
-    const research = await searchWeb({ question: buildEventsQuestion(today, until), maxSearches: 3 });
+    const research = await searchWeb({ question: buildEventsQuestion(today, until), maxSearches: 5 });
     await logUsage(supabase, owner.id, "dates_search", research.usage, "ok");
     sources = research.sources;
     if (!research.notes || sources.length === 0) redirect("/dates?error=nothing");
 
     const result = await generateStructured({
       system: buildSystemPrompt(brand),
-      prompt: buildEventsPrompt(research.notes, sources.slice(0, 25), today, until),
+      prompt: buildEventsPrompt(research.notes, sources.slice(0, 40), today, until),
       schema: EventsSchema,
-      maxTokens: 5000,
+      maxTokens: 8000,
     });
     await logUsage(supabase, owner.id, "dates_list", result.usage, "ok");
     events = result.data.events;
@@ -48,10 +49,23 @@ export async function findDates() {
 
   // Keep only real dates inside the window whose link came back from the search.
   const known = new Map(sources.map((s) => [s.url, s]));
+  // Skip an occasion that is already saved on the same day under a slightly different name.
+  const { data: saved } = await supabase
+    .from("calendar_events")
+    .select("event_date, name")
+    .eq("profile_id", owner.id)
+    .gte("event_date", today);
+  const seen = new Set((saved ?? []).map((e) => eventKey(e.event_date, e.name)));
   const rows = events
     .filter((e) => isValidDate(e.date) && e.date >= today && e.date <= until)
     .filter((e) => known.has(e.source_url) && e.name.trim())
-    .slice(0, 12)
+    .filter((e) => {
+      const key = eventKey(e.date, e.name);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 20)
     .map((e) => ({
       profile_id: owner.id,
       event_date: e.date,
@@ -63,7 +77,7 @@ export async function findDates() {
       relevance_reason: e.relevance_reason.trim(),
       suggested_angle: e.suggested_angle.trim(),
     }));
-  if (rows.length === 0) redirect("/dates?error=nothing");
+  if (rows.length === 0) redirect("/dates?saved=none-new");
 
   // Dates already saved are left as they are, so pressing the button twice makes no duplicates.
   const { error } = await supabase
