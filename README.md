@@ -2,7 +2,7 @@
 
 A private web app that turns ideas and learning notes into review-ready social posts. See `docs/PRD.md` and `docs/PRD-amendments.md` for the full specification, and `CLAUDE.md` for the working rules.
 
-**Current milestone:** Phase 1a (parts 1 and 2). Settings, voice guide, Idea Inbox with trending suggestions, AI drafts with an optional live web check, draft review with follow-up answers, the This Week board with a plan button, Calendar and the Home dashboard. Holidays, Analytics and designed graphics come next.
+**Current milestone:** Phase 1a (parts 1 and 2). Settings, voice guide, Idea Inbox with trending suggestions, AI drafts with an optional live web check, draft review with follow-up answers, the This Week board with a plan button, Calendar and the Home dashboard. Also Holidays and key dates (found by live web search, drafted and scheduled on request) and Analytics (weekly page numbers and per-post numbers, entered by hand). Designed graphics and carousels come next.
 
 ## Run it on your computer
 

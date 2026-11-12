@@ -21,13 +21,13 @@ export function LoginForm() {
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="min-h-12 rounded-lg border border-line-strong px-3.5"
+          className="min-h-12 rounded-xl border border-line-strong px-3.5"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="min-h-12 rounded-lg bg-accent font-semibold text-white disabled:opacity-60"
+        className="min-h-12 rounded-xl bg-accent font-semibold text-white hover:bg-[#5b21b6] disabled:opacity-60"
       >
         {pending ? "Sending…" : "Send me a sign-in link"}
       </button>

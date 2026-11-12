@@ -86,7 +86,7 @@ export default async function InboxPage({
           <h2 className={h2}>Nothing in mind today?</h2>
           <p className="mt-1 text-sm text-muted">
             The AI searches the web for what is being discussed this week in your field and suggests
-            up to five topics, some serious and some light. This uses a little more credit than a draft.
+            up to five varied topics across AI, automation, data, careers, African tech and working life. This uses a little more credit than a draft.
           </p>
         </div>
         <form action={findTrendingIdeas}>
@@ -120,7 +120,7 @@ export default async function InboxPage({
                 <p className="line-clamp-4 whitespace-pre-line">{idea.raw_content}</p>
                 <div className="flex flex-wrap gap-2">
                   <span className={chip}>
-                    {idea.input_type === "learning_note" ? "Learning note" : idea.input_type === "trending" ? "Trending suggestion" : "Quick thought"}
+                    {idea.input_type === "learning_note" ? "Learning note" : idea.input_type === "trending" ? "Trending suggestion" : idea.input_type === "event" ? "Holiday or date" : "Quick thought"}
                   </span>
                   <span className={chip}>{TONES[idea.tone as Tone] ?? TONES.auto}</span>
                   <span className={`${chip} font-semibold`}>{STATUS[idea.status] ?? idea.status}</span>

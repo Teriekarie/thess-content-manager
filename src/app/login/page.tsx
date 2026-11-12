@@ -15,10 +15,13 @@ export default async function LoginPage({
   const errorMessage = error ? ERRORS[error] : undefined;
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8">
-      <main className="flex w-full max-w-[420px] flex-col gap-5 rounded-2xl border border-line bg-surface px-8 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-plum px-4 py-8">
+      <main className="flex w-full max-w-[420px] flex-col gap-5 rounded-3xl bg-surface px-8 py-10 shadow-2xl">
         <div>
-          <p className="font-display text-lg font-bold">Content Manager</p>
+          <p className="flex items-center gap-3 font-display text-lg font-bold">
+            <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold text-plum">T</span>
+            Content Manager
+          </p>
           <h1 className="mt-6 font-display text-3xl font-bold">Sign in</h1>
           <p className="mt-2 text-muted">
             Enter your email and we will send you a sign-in link. No password

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { btnPrimary, card, h1, h2 } from "@/components/ui";
+import { card, h2 } from "@/components/ui";
 import { requireOwner } from "@/lib/auth/session";
 import { summarise, type StatFeedback, type StatPost } from "@/lib/content/stats";
 import { getBrandSettings, monthSpend } from "@/lib/data";
@@ -35,22 +35,36 @@ export default async function HomePage() {
   const laterCount = all.filter((p) => p.status === "planned" && p.scheduled_for && p.scheduled_for > days[6]).length;
 
   const tiles = [
-    ["Generated", totals.generated],
-    ["Posted", totals.posted],
-    ["You liked", totals.liked],
-    ["You did not like", totals.notLiked],
-    ["Carried over", totals.carriedOver],
-    ["Discarded", totals.discarded],
+    ["Generated", totals.generated, "bg-accent"],
+    ["Posted", totals.posted, "bg-ok"],
+    ["You liked", totals.liked, "bg-gold"],
+    ["You did not like", totals.notLiked, "bg-[#c2410c]"],
+    ["Carried over", totals.carriedOver, "bg-[#0a66c2]"],
+    ["Discarded", totals.discarded, "bg-[#8a7f92]"],
   ] as const;
 
   return (
     <div className="flex max-w-[960px] flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className={h1}>Home</h1>
-          <p className="mt-1 text-muted">All your posts so far</p>
+      <header className="flex flex-wrap items-center justify-between gap-5 rounded-3xl bg-plum px-7 py-8 text-white">
+        <div className="flex-[1_1_320px]">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-gold">Your content desk</p>
+          <h1 className="mt-2 font-display text-[34px] font-bold leading-tight tracking-tight">
+            {thisWeek.length - weekPosted > 0
+              ? `${thisWeek.length - weekPosted} post${thisWeek.length - weekPosted === 1 ? "" : "s"} waiting for you this week`
+              : "You are all caught up this week"}
+          </h1>
+          <p className="mt-2 text-[#d9cbe6]">
+            {newIdeas ?? 0} idea{newIdeas === 1 ? "" : "s"} in your inbox · {totals.posted} posted so far
+          </p>
         </div>
-        <Link href="/inbox" className={btnPrimary}>Add an idea</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/inbox" className="inline-flex min-h-11 items-center rounded-xl bg-gold px-5 font-semibold text-plum hover:bg-[#f8c95f]">
+            Add an idea
+          </Link>
+          <Link href="/week" className="inline-flex min-h-11 items-center rounded-xl border border-white/40 px-5 font-semibold text-white hover:bg-white/10">
+            This week
+          </Link>
+        </div>
       </header>
 
       {totals.generated === 0 ? (
@@ -65,10 +79,11 @@ export default async function HomePage() {
       ) : null}
 
       <section aria-label="Totals" className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4">
-        {tiles.map(([name, value]) => (
-          <div key={name} className="rounded-xl border border-line bg-surface p-5">
-            <div className="text-sm text-muted">{name}</div>
-            <div className="font-display text-[32px] font-bold">{value}</div>
+        {tiles.map(([name, value, colour]) => (
+          <div key={name} className={`${card} !p-5`}>
+            <span aria-hidden="true" className={`block h-1.5 w-8 rounded-full ${colour}`} />
+            <div className="mt-3 text-sm text-muted">{name}</div>
+            <div className="font-display text-[34px] font-bold leading-tight">{value}</div>
           </div>
         ))}
       </section>

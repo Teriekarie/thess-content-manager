@@ -73,12 +73,13 @@ export function toneInstruction(tone: Tone): string {
   }
 }
 
-export type IdeaType = "thought" | "learning_note" | "trending";
+export type IdeaType = "thought" | "learning_note" | "trending" | "event";
 
 const IDEA_KIND: Record<IdeaType, string> = {
   thought: "the author's rough thought",
   learning_note: "the author's learning note",
   trending: "the suggested topic",
+  event: "the occasion",
 };
 
 export function buildLinkedInPrompt(input: {
@@ -97,6 +98,10 @@ ${input.idea}
 ${
   input.inputType === "trending"
     ? "\nThis topic was suggested from current news, so it is not the author's own words. Do not claim she has personal experience of it or put an opinion in her mouth. Write it as a clear, useful take that she can adjust, and use clarifying_question to ask for her own view.\n"
+    : ""
+}${
+  input.inputType === "event"
+    ? "\nThis post marks the occasion above on its date. Tie it genuinely to the author's field or audience in a warm, human way. Do not invent personal memories, traditions or plans for her. Keep it short. Use clarifying_question to ask for one personal detail she might add.\n"
     : ""
 }${
   input.research
@@ -164,10 +169,20 @@ Report in under 180 words:
 If nothing recent and relevant turns up, say so plainly. Do not pad. Do not present old news as new.`;
 }
 
-export function buildTrendingQuestion(today: string, keywords: string[]): string {
-  return `Today is ${today}. Search the web for what people are discussing this week in these areas: ${keywords.slice(0, 10).join(", ")}; also AI at work, automation, data analytics and relatable moments of working life in tech.
+export const TRENDING_AREAS = [
+  "AI models, agents and AI at work (any company)",
+  "Workflow automation and no-code or low-code tools",
+  "Data analytics, dashboards and business intelligence",
+  "Careers, hiring and skills in tech",
+  "Tech and business news from Nigeria and Africa",
+  "Funny or relatable moments of working life and office technology",
+];
 
-List 6 to 8 items. For each give one plain sentence on what is being discussed and its date. Include a mix of serious developments and lighter, relatable talking points. Skip anything older than about two weeks.`;
+export function buildTrendingQuestion(today: string): string {
+  return `Today is ${today}. Search the web for what people are discussing this week across ALL of these areas. Run separate searches for different areas:
+${list(TRENDING_AREAS)}
+
+List 8 to 10 items, with at least one from each area where something recent exists. No more than two items may be about the same company or product. For each give one plain sentence on what is being discussed and its date. Skip anything older than about two weeks.`;
 }
 
 export function buildTrendingIdeasPrompt(notes: string, sources: { title: string; url: string }[]): string {
@@ -181,5 +196,29 @@ ${notes}
 ${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
 </sources>
 
-Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes. Skip anything that does not fit her positioning.`;
+Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes.\n\nMake the five as varied as the notes allow: different subject areas, and never two suggestions about the same company, product or event.`;
+}
+
+export function buildEventsQuestion(today: string, until: string): string {
+  return `Today is ${today}. Search the web for dates between ${today} and ${until} in these groups:
+- Nigerian public holidays and major cultural occasions.
+- International days about technology, AI, data, cybersecurity, digital inclusion, women in tech and work.
+- Major technology conferences and product events.
+- Widely marked global occasions.
+
+List each with its exact date and the page that confirms it. Only include dates you found confirmed on a page. Note when a holiday's date is still provisional (for example, dates set by moon sighting).`;
+}
+
+export function buildEventsPrompt(notes: string, sources: { title: string; url: string }[], today: string, until: string): string {
+  return `From the research notes below, list the dates between ${today} and ${until} that are worth a post for the author.
+
+<research_notes>
+${notes}
+</research_notes>
+
+<sources>
+${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
+</sources>
+
+Include public holidays and occasions she would naturally greet her audience on, and tech dates with a real link to her field. Leave out unrelated awareness days. Use only dates stated in the notes, in YYYY-MM-DD form, and copy each source_url exactly from the list. At most 12.`;
 }

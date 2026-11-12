@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { OutcomeButtons } from "@/components/outcome-buttons";
-import { btnSecondary, card, chipDark, h1, h2 } from "@/components/ui";
+import { btnSecondary, card, platformChip, h1, h2 } from "@/components/ui";
 import { requireOwner } from "@/lib/auth/session";
 import { PLATFORMS, type Platform } from "@/lib/content/defaults";
 import {
@@ -75,7 +75,7 @@ export default async function CalendarPage({
     <article className="flex flex-wrap items-center gap-4 rounded-xl border border-line bg-surface px-5 py-4">
       <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={chipDark}>{PLATFORMS[post.platform]}</span>
+          <span className={platformChip(post.platform)}>{PLATFORMS[post.platform]}</span>
           <span className="text-sm text-muted">
             {formatDay(post.scheduled_for)} {formatDate(post.scheduled_for)}
           </span>
@@ -104,7 +104,7 @@ export default async function CalendarPage({
         <div className="flex flex-wrap gap-4 text-[13px]">
           <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-ok" />Posted</span>
           <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-[3px] border border-[#23449f] bg-[#c9d6f7]" />Scheduled
+            <span className="h-3 w-3 rounded-[3px] border border-accent bg-accent-soft" />Scheduled
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -115,7 +115,7 @@ export default async function CalendarPage({
             {cells.map((date, i) => (
               <div key={date ?? `blank-${i}`}
                 className={`flex min-h-[92px] flex-col gap-1 rounded-lg border p-1.5 ${
-                  date === today ? "border-2 border-accent" : "border-line"
+                  date === today ? "border-2 border-gold bg-[#fffaf0]" : "border-line"
                 } ${date ? "" : "bg-ground"}`}>
                 {date ? (
                   <>
@@ -125,7 +125,7 @@ export default async function CalendarPage({
                         className={`truncate rounded px-1.5 py-0.5 text-xs font-semibold ${
                           post.status === "posted"
                             ? "bg-ok text-white"
-                            : "border border-[#23449f] bg-[#e4eafb] text-[#23449f]"
+                            : "border border-accent bg-accent-soft text-[#4c1d95]"
                         }`}>
                         {SHORT[post.platform]}
                       </Link>

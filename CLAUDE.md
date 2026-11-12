@@ -74,11 +74,13 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 
 - Private pages live in `src/app/(app)/`; its layout calls `requireOwner()`. Every new private route handler and server action must call `requireOwner()` too.
 - Public paths are listed only in `src/lib/auth/paths.ts`.
-- Colours and fonts are placeholder tokens in `src/app/globals.css`; do not hardcode new brand values.
+- Colours and fonts are tokens in `src/app/globals.css` (plum, violet accent, gold: a starting palette Thess asked for, not a supplied brand kit). Shared class names are in `src/components/ui.ts`; use them and `platformChip()` rather than new one-off styles.
 - Platforms: LinkedIn, Instagram + Facebook (one shared post), TikTok. Database values: `linkedin`, `instagram_facebook`, `tiktok`.
 - All AI calls go through `generateStructured()` in `src/lib/ai/provider.ts` with a Zod schema from `src/lib/ai/schemas.ts`, and are recorded with `logUsage()`. Model comes from `AI_MODEL` (default `claude-opus-5-5`); prices in `src/lib/ai/pricing.ts`.
 - Drafting goes through `draftFromIdea()` in `src/lib/drafting.ts`: one AI request returns LinkedIn plus the Instagram + Facebook caption. TikTok is on demand.
 - Web search goes through `searchWeb()` in `src/lib/ai/research.ts`. Source links are read from the search results, never from model prose. A failed search never blocks a draft.
+- Dates found by web search (`calendar_events`) are only saved when the source link came back from the search and the date is valid and in the window.
+- Analytics are manual entry. An empty box is stored as null ("not available"), never zero. Page numbers are per platform per week (Instagram and Facebook separately); post numbers are per post.
 - A rewrite saves the old wording to `post_versions` before updating the post.
 - Dates are `YYYY-MM-DD` strings in Africa/Lagos; use `src/lib/dates.ts`, never raw `new Date()` arithmetic.
 - Server actions redirect with `?saved=` or `?error=` codes; pages turn the codes into plain messages.
@@ -91,6 +93,6 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - [ ] Phase 1a — Fast first use (scope extended, see `docs/PRD-amendments.md`)
   - [x] Part 1 built: Settings, voice seeding, AI adapter, Idea Inbox, drafts per platform, draft review, This Week board (awaiting Thess's test with a real API key)
   - [x] Part 2 built: Calendar, Home dashboard, live web check, trending ideas, follow-up answers with saved versions, weekly plan button (awaiting Thess's test)
-- [ ] Holidays and key dates, then Analytics
+- [x] Holidays and key dates, and Analytics, built (awaiting Thess's test). Automatic holiday drafting needs the scheduler and is not built.
 - [ ] Designed graphics and carousel designer (app-drawn; no external image service)
 - [ ] Remaining PRD phases (research automation, learning, integrations)

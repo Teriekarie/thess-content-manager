@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { OutcomeButtons } from "@/components/outcome-buttons";
-import { btnDark, btnPrimary, btnSecondary, card, chip, chipDark, h1, h2 } from "@/components/ui";
+import { btnDark, btnPrimary, btnSecondary, card, chip, platformChip, h1, h2 } from "@/components/ui";
 import { requireOwner } from "@/lib/auth/session";
 import { PLATFORMS, type Platform } from "@/lib/content/defaults";
 import {
@@ -41,7 +41,7 @@ const ORDER: Platform[] = ["linkedin", "instagram_facebook", "tiktok"];
 
 function describePlan(plan: string | undefined): { kind: "ok" | "warn"; text: string } | null {
   if (!plan) return null;
-  if (plan === "full") return { kind: "ok", text: "Every posting day this week already has a post." };
+  if (plan === "full") return { kind: "ok", text: "Every posting day in this week already has a post." };
   if (plan === "no-ideas") {
     return { kind: "warn", text: "There are no new ideas to draft from. Add some in the Idea Inbox first." };
   }
@@ -99,7 +99,7 @@ export default async function WeekPage({
     }`}>
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={chipDark}>{PLATFORMS[post.platform]}</span>
+          <span className={platformChip(post.platform)}>{PLATFORMS[post.platform]}</span>
           {post.format ? <span className={chip}>{post.format}</span> : null}
           {post.platform === "linkedin" ? <span className={chip}>{post.length} form</span> : null}
           {post.visual_choice ? <span className={chip}>{VISUAL[post.visual_choice]}</span> : null}
@@ -136,7 +136,8 @@ export default async function WeekPage({
       <section aria-label="Plan this week" className={`${card} flex flex-wrap items-center justify-between gap-4`}>
         <p className="flex-[1_1_320px] text-sm text-muted">
           Fill the free posting days (Tuesday, Wednesday, Thursday) with drafts from your saved ideas,
-          oldest first. Days that already have a post are left alone.
+          oldest first. Days that already have a post are left alone. If this week&apos;s days have
+          passed, next week is planned instead.
         </p>
         <form action={generatePlan}>
           <input type="hidden" name="week" value={start} />

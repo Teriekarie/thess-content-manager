@@ -31,6 +31,11 @@ export function IdeaForm() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
+          <p className="rounded-lg bg-ground px-4 py-3 text-sm text-muted">
+            A learning note is for something you worked through with an AI tool or on a project: what
+            you tried, what blocked you and how you fixed it. These make strong posts. The quickest way
+            is to copy the prompt further down this page into your AI chat, then paste its answer here.
+          </p>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="pasted" className={label}>Paste a whole learning note</label>
             <textarea id="pasted" name="pasted" rows={5} className={field}

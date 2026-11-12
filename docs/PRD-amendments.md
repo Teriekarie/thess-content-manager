@@ -36,3 +36,7 @@ Agreed with Thess on 11 November 2026 after reviewing the design preview. Where 
 ## Decided since
 
 - **Images (11 November 2026).** No external image service. The app creates its own designed graphics (text cards, simple illustrations, carousels) drawn by the app from AI-written layouts. Realistic photos are added by Thess manually on the platform.
+
+- **Look and feel (12 November 2026).** Thess asked for a warmer, less plain design. A starting palette (plum sidebar, violet accent, gold highlight) is set in `src/app/globals.css`. It is not a final brand kit and can be replaced there.
+- **Trending ideas (12 November 2026).** Must cover a wide range: AI, automation, data, careers, African tech and working life, with no two suggestions about the same company or product.
+- **Weekly plan (12 November 2026).** When this week's posting days have passed or are full, the plan button fills next week instead.

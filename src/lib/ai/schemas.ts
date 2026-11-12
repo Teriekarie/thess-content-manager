@@ -82,3 +82,18 @@ export const TrendingIdeasSchema = z.object({
   ),
 });
 export type TrendingIdeas = z.infer<typeof TrendingIdeasSchema>;
+
+export const EventsSchema = z.object({
+  events: z.array(
+    z.object({
+      date: z.string().describe("YYYY-MM-DD, exactly as confirmed by a source"),
+      name: z.string(),
+      category: z.enum(["public_holiday", "tech_observance", "tech_event", "cultural", "global"]),
+      geography: z.string().describe("e.g. Nigeria, Global"),
+      relevance_reason: z.string().describe("One sentence on why it suits this author"),
+      suggested_angle: z.string().describe("One sentence post angle. No invented personal stories."),
+      source_url: z.string().describe("Copied exactly from the provided source list"),
+    }),
+  ),
+});
+export type EventList = z.infer<typeof EventsSchema>;
