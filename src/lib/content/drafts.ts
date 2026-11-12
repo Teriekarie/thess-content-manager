@@ -1,4 +1,4 @@
-import type { LinkedInDraft, SocialDraft, TikTokDraft } from "@/lib/ai/schemas";
+import type { CarouselDraft, LinkedInDraft, SocialDraft, TikTokDraft } from "@/lib/ai/schemas";
 import { findBannedPhrases, normaliseHashtags } from "./text";
 
 const clean = (items: string[], max: number) =>
@@ -91,4 +91,19 @@ export function tikTokRow(draft: TikTokDraft, ctx: Context) {
     review_notes: draft.review_notes.trim(),
     needs_user_confirmation: draft.needs_user_confirmation,
   };
+}
+
+export type CarouselSlide = { kind: "cover" | "content" | "closing"; headline: string; body?: string };
+
+/** Tidies carousel text from the AI into the slides that are saved and drawn. */
+export function carouselSlides(draft: CarouselDraft): CarouselSlide[] {
+  const content = draft.slides
+    .map((s) => ({ headline: s.headline.trim().slice(0, 90), body: s.body.trim().slice(0, 300) }))
+    .filter((s) => s.headline)
+    .slice(0, 6);
+  return [
+    { kind: "cover", headline: draft.cover.trim().slice(0, 120) },
+    ...content.map((s) => ({ kind: "content" as const, ...s })),
+    { kind: "closing", headline: draft.closing.trim().slice(0, 160) },
+  ];
 }

@@ -24,6 +24,14 @@ export function aiModel(): string {
   return process.env.AI_MODEL?.trim() || "claude-opus-5-5";
 }
 
+/**
+ * Web searches feed a lot of text to the model, so they use a cheaper model by default.
+ * The writing itself still uses the main model.
+ */
+export function researchModel(): string {
+  return process.env.AI_RESEARCH_MODEL?.trim() || "claude-haiku-5-5";
+}
+
 export function aiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 }

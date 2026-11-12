@@ -109,7 +109,7 @@ export async function findTrendingIdeas() {
   try {
     const research = await searchWeb({
       question: buildTrendingQuestion(lagosToday()),
-      maxSearches: 5,
+      maxSearches: 3,
     });
     await logUsage(supabase, owner.id, "trending_search", research.usage, "ok");
     sources = research.sources;

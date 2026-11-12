@@ -4,15 +4,21 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
+  buildCarouselPrompt,
   buildLinkedInPrompt,
   buildSocialPrompt,
   buildSystemPrompt,
   buildTikTokPrompt,
 } from "@/lib/ai/prompts";
 import { AiError, generateStructured, type AiUsage } from "@/lib/ai/provider";
-import { CombinedDraftSchema, SocialDraftSchema, TikTokDraftSchema } from "@/lib/ai/schemas";
+import {
+  CarouselSchema,
+  CombinedDraftSchema,
+  SocialDraftSchema,
+  TikTokDraftSchema,
+} from "@/lib/ai/schemas";
 import { requireOwner } from "@/lib/auth/session";
-import { linkedInRow, socialRow, tikTokRow } from "@/lib/content/drafts";
+import { carouselSlides, linkedInRow, socialRow, tikTokRow } from "@/lib/content/drafts";
 import { getBrandContext, logUsage } from "@/lib/data";
 import { isValidDate, lagosToday, sameDayNextWeek } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -300,4 +306,84 @@ export async function answerQuestion(form: FormData) {
   }
   refresh(post.id);
   redirect(`/posts/${post.id}?saved=rewritten`);
+}
+
+/** Writes the slide text for a carousel from a post. The slides are then drawn by the app. */
+export async function writeCarousel(form: FormData) {
+  const owner = await requireOwner();
+  const id = z.uuid().safeParse(text(form, "id"));
+  if (!id.success) redirect("/week");
+
+  const supabase = await createClient();
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id, body, structured_content")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (!post) redirect("/week");
+
+  const brand = await getBrandContext(supabase, owner.id);
+  let result;
+  try {
+    result = await generateStructured({
+      system: buildSystemPrompt(brand),
+      prompt: buildCarouselPrompt(post.body),
+      schema: CarouselSchema,
+      maxTokens: 4000,
+    });
+  } catch (error) {
+    const code = error instanceof AiError ? error.code : "failed";
+    await logUsage(supabase, owner.id, "carousel_text", null, code);
+    redirect(`/posts/${post.id}?error=ai-${code}#visual`);
+  }
+  await logUsage(supabase, owner.id, "carousel_text", result.usage, "ok");
+
+  await supabase
+    .from("posts")
+    .update({
+      visual_choice: "carousel",
+      structured_content: { ...(post.structured_content ?? {}), carousel: carouselSlides(result.data) },
+    })
+    .eq("id", post.id);
+  refresh(post.id);
+  redirect(`/posts/${post.id}#visual`);
+}
+
+/** Saves the author's own edit of a post. The earlier wording is kept in post_versions. */
+export async function editPost(form: FormData) {
+  const owner = await requireOwner();
+  const id = z.uuid().safeParse(text(form, "id"));
+  const body = String(form.get("body") ?? "").replace(/\r\n/g, "\n").trim();
+  if (!id.success) redirect("/week");
+  if (body.length < 5 || body.length > 8000) redirect(`/posts/${id.data}?error=edit`);
+
+  const supabase = await createClient();
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id, body, structured_content")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (!post) redirect("/week");
+  if (post.body === body) redirect(`/posts/${post.id}`);
+
+  const { data: last } = await supabase
+    .from("post_versions")
+    .select("version_number")
+    .eq("post_id", post.id)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase.from("post_versions").insert({
+    profile_id: owner.id,
+    post_id: post.id,
+    version_number: (last?.version_number ?? 0) + 1,
+    body: post.body,
+    structured_content: post.structured_content ?? {},
+    change_note: "Before the author's own edit",
+  });
+  if (error) redirect(`/posts/${post.id}?error=save`);
+
+  await supabase.from("posts").update({ body }).eq("id", post.id);
+  refresh(post.id);
+  redirect(`/posts/${post.id}?saved=edited`);
 }

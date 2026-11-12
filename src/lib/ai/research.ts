@@ -1,6 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { AiError, aiConfigured, aiModel, type AiUsage } from "./provider";
+import { AiError, aiConfigured, aiModel, researchModel, type AiUsage } from "./provider";
 
 export type WebSource = { title: string; url: string; age: string | null };
 export type WebResearch = { notes: string; sources: WebSource[]; searches: number; usage: AiUsage };
@@ -20,8 +20,22 @@ export async function searchWeb(input: {
   maxSearches: number;
 }): Promise<WebResearch> {
   if (!aiConfigured()) throw new AiError("not-configured");
+  const cheap = researchModel();
+  try {
+    return await searchWith(cheap, input);
+  } catch (error) {
+    // If the cheaper model cannot do the search, fall back to the main model once.
+    const main = aiModel();
+    if (main === cheap || !(error instanceof AiError) || error.code !== "failed") throw error;
+    return searchWith(main, input);
+  }
+}
+
+async function searchWith(
+  model: string,
+  input: { question: string; maxSearches: number },
+): Promise<WebResearch> {
   const client = new Anthropic({ timeout: 90_000, maxRetries: 1 });
-  const model = aiModel();
   const started = Date.now();
   const tools: Anthropic.Messages.ToolUnion[] = [
     { type: searchToolType(model), name: "web_search", max_uses: input.maxSearches },

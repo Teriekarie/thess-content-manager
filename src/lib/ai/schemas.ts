@@ -97,3 +97,15 @@ export const EventsSchema = z.object({
   ),
 });
 export type EventList = z.infer<typeof EventsSchema>;
+
+export const CarouselSchema = z.object({
+  cover: z.string().describe("Cover headline, under 12 words"),
+  slides: z.array(
+    z.object({
+      headline: z.string().describe("Under 9 words"),
+      body: z.string().describe("One or two short sentences, under 40 words"),
+    }),
+  ).describe("4 to 6 content slides, one point each"),
+  closing: z.string().describe("Closing takeaway or question, under 16 words"),
+});
+export type CarouselDraft = z.infer<typeof CarouselSchema>;

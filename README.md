@@ -2,7 +2,7 @@
 
 A private web app that turns ideas and learning notes into review-ready social posts. See `docs/PRD.md` and `docs/PRD-amendments.md` for the full specification, and `CLAUDE.md` for the working rules.
 
-**Current milestone:** Phase 1a (parts 1 and 2). Settings, voice guide, Idea Inbox with trending suggestions, AI drafts with an optional live web check, draft review with follow-up answers, the This Week board with a plan button, Calendar and the Home dashboard. Also Holidays and key dates (found by live web search, drafted and scheduled on request) and Analytics (weekly page numbers and per-post numbers, entered by hand). Designed graphics and carousels come next.
+**Current milestone:** Phase 1a (parts 1 and 2). Settings, voice guide, Idea Inbox with trending suggestions, AI drafts with an optional live web check, draft review with follow-up answers, the This Week board with a plan button, Calendar and the Home dashboard. Also Holidays and key dates (found by live web search, drafted and scheduled on request) and Analytics (weekly page numbers and per-post numbers, entered by hand). Designed graphics and carousels are drawn by the app in the browser and downloaded as PNG files.
 
 ## Run it on your computer
 
@@ -34,6 +34,7 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable key | No (safe by design; Row Level Security protects the data) |
 | `OWNER_EMAIL` | The only email address allowed to sign in | Server only |
 | `ANTHROPIC_API_KEY` | Lets the app use Claude. Created at console.anthropic.com | **Yes, server only** |
+| `AI_RESEARCH_MODEL` | Optional. The cheaper model used only for web searches. Defaults to `claude-haiku-5-5` | No |
 | `AI_MODEL` | Optional. Which Claude model writes the drafts. Defaults to `claude-opus-5-5`; `claude-sonnet-5-5` and `claude-haiku-5-5` are cheaper | No |
 
 Never commit `.env.local`. Never prefix a secret with `NEXT_PUBLIC_`.
@@ -91,8 +92,7 @@ To change the model, set `AI_MODEL` in Vercel and redeploy. Prices for the estim
 
 - The sign-in link must be opened in the same browser that requested it.
 - Supabase's built-in email sender allows only a few emails per hour.
-- Drafts cannot be edited by hand inside the app yet; copy and adjust on the platform.
 - The spend estimate counts AI tokens only, not the per-search fee for web checks.
 - Hashtags come from public web pages; the app cannot see each platform's own hashtag performance.
-- "Design a graphic" and "Design a carousel" only record your choice for now.
+- Carousels download as PNG images; there is no PDF export yet.
 - On a phone the menu sits above the page content.

@@ -25,9 +25,11 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const { data } = await supabase.auth.getUser();
+  // A quick check of the signed session, verified without a round trip where possible.
+  // The full check against the auth server happens in requireOwner() on every private page.
+  const { data } = await supabase.auth.getClaims();
 
-  if (!data.user && !isPublicPath(request.nextUrl.pathname)) {
+  if (!data?.claims && !isPublicPath(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

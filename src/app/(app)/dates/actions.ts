@@ -27,7 +27,7 @@ export async function findDates() {
   let events: EventList["events"];
   let sources: WebSource[];
   try {
-    const research = await searchWeb({ question: buildEventsQuestion(today, until), maxSearches: 4 });
+    const research = await searchWeb({ question: buildEventsQuestion(today, until), maxSearches: 3 });
     await logUsage(supabase, owner.id, "dates_search", research.usage, "ok");
     sources = research.sources;
     if (!research.notes || sources.length === 0) redirect("/dates?error=nothing");

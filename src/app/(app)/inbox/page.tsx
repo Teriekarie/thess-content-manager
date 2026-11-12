@@ -86,7 +86,7 @@ export default async function InboxPage({
           <h2 className={h2}>Nothing in mind today?</h2>
           <p className="mt-1 text-sm text-muted">
             The AI searches the web for what is being discussed this week in your field and suggests
-            up to five varied topics across AI, automation, data, careers, African tech and working life. This uses a little more credit than a draft.
+            four or five varied topics: AI, automation, data, careers, world and African tech news, and working life. This uses a little more credit than a draft.
           </p>
         </div>
         <form action={findTrendingIdeas}>

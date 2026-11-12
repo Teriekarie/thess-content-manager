@@ -78,6 +78,9 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - Platforms: LinkedIn, Instagram + Facebook (one shared post), TikTok. Database values: `linkedin`, `instagram_facebook`, `tiktok`.
 - All AI calls go through `generateStructured()` in `src/lib/ai/provider.ts` with a Zod schema from `src/lib/ai/schemas.ts`, and are recorded with `logUsage()`. Model comes from `AI_MODEL` (default `claude-opus-5-5`); prices in `src/lib/ai/pricing.ts`.
 - Drafting goes through `draftFromIdea()` in `src/lib/drafting.ts`: one AI request returns LinkedIn plus the Instagram + Facebook caption. TikTok is on demand.
+- Web searches use the cheaper `AI_RESEARCH_MODEL` (default `claude-haiku-5-5`) and fall back to the main model once if that fails. Searches were about 80% of early spend, so keep search counts low.
+- Graphics are drawn in the browser by `src/components/visual-studio.tsx` using `fitText()` from `src/lib/content/wrap.ts`. A single card needs no AI call; a carousel needs one call for slide text (`writeCarousel`).
+- `requireOwner()` is wrapped in React `cache()`, the proxy uses `getClaims()`, and Vercel functions run in `dub1` (next to the Supabase region) via `vercel.json`. Keep these when touching auth, or navigation gets slow.
 - Web search goes through `searchWeb()` in `src/lib/ai/research.ts`. Source links are read from the search results, never from model prose. A failed search never blocks a draft.
 - Dates found by web search (`calendar_events`) are only saved when the source link came back from the search and the date is valid and in the window.
 - Analytics are manual entry. An empty box is stored as null ("not available"), never zero. Page numbers are per platform per week (Instagram and Facebook separately); post numbers are per post.
@@ -94,5 +97,5 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
   - [x] Part 1 built: Settings, voice seeding, AI adapter, Idea Inbox, drafts per platform, draft review, This Week board (awaiting Thess's test with a real API key)
   - [x] Part 2 built: Calendar, Home dashboard, live web check, trending ideas, follow-up answers with saved versions, weekly plan button (awaiting Thess's test)
 - [x] Holidays and key dates, and Analytics, built (awaiting Thess's test). Automatic holiday drafting needs the scheduler and is not built.
-- [ ] Designed graphics and carousel designer (app-drawn; no external image service)
+- [x] Designed graphics and carousel designer built (drawn on a canvas in the browser; awaiting Thess's test). No PDF export yet.
 - [ ] Remaining PRD phases (research automation, learning, integrations)

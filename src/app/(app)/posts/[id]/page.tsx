@@ -11,13 +11,15 @@ import { PLATFORMS, type Platform } from "@/lib/content/defaults";
 import { asStringArray } from "@/lib/content/text";
 import { formatLong, lagosToday } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { addAdaptation, answerQuestion, rateDraft, setVisualChoice } from "../actions";
+import { CarouselStudio, GraphicStudio, type Slide } from "@/components/visual-studio";
+import { getBrandSettings } from "@/lib/data";
+import { addAdaptation, answerQuestion, editPost, rateDraft, setVisualChoice, writeCarousel } from "../actions";
 
 export const maxDuration = 120;
 
 const VISUALS = [
-  { value: "generate_image", title: "Design a graphic", note: "A clean designed card (coming soon)" },
-  { value: "carousel", title: "Design a carousel", note: "Slides you can download (coming soon)" },
+  { value: "generate_image", title: "Design a graphic", note: "A clean card with one line of text. Free." },
+  { value: "carousel", title: "Design a carousel", note: "Slides you can download" },
   { value: "own_photo", title: "I will use my own photo", note: "You add it on the platform" },
   { value: "none", title: "No visual", note: "Text only" },
 ];
@@ -73,7 +75,7 @@ export default async function PostPage({
   if (!post || post.profile_id !== owner.id) notFound();
 
   const rootId: string = post.parent_post_id ?? post.id;
-  const [{ data: family }, { data: idea }, { data: ratings }] = await Promise.all([
+  const [{ data: family }, { data: idea }, { data: ratings }, settings] = await Promise.all([
     supabase
       .from("posts")
       .select("id, platform, parent_post_id")
@@ -87,6 +89,7 @@ export default async function PostPage({
       .eq("post_id", post.id)
       .order("created_at", { ascending: false })
       .limit(1),
+    getBrandSettings(supabase, owner.id),
   ]);
 
   const versions = new Map<string, string>((family ?? []).map((p) => [p.platform, p.id]));
@@ -97,10 +100,25 @@ export default async function PostPage({
   const extra = (post.structured_content ?? {}) as Record<string, unknown>;
   const bannedFound = list(extra.banned_found);
   const research = readResearch(extra.research);
+  const footer = settings.positioning || "Content Manager";
+  const carousel: Slide[] = Array.isArray(extra.carousel)
+    ? (extra.carousel as { kind?: string; headline?: unknown; body?: unknown }[])
+        .filter((s) => s && typeof s.headline === "string")
+        .map((s, i, all) => ({
+          kind: s.kind === "cover" || s.kind === "closing" ? s.kind : "content",
+          headline: s.headline as string,
+          body: typeof s.body === "string" ? s.body : undefined,
+          counter: `${i + 1} / ${all.length}`,
+        }))
+    : [];
+  const cardText =
+    (typeof extra.cover_text === "string" && extra.cover_text) || post.hook || post.title;
   const lastRating = ratings?.[0];
   const errorMessage = error
     ? error === "date"
       ? "Please choose a valid date."
+      : error === "edit"
+        ? "The post text is too short or too long to save."
       : error === "answer"
         ? "Please type an answer first."
       : error.startsWith("ai-")
@@ -147,6 +165,7 @@ export default async function PostPage({
       </header>
 
       {saved === "rating" ? <Notice kind="ok">Thanks. Your rating is saved.</Notice> : null}
+      {saved === "edited" ? <Notice kind="ok">Your edit is saved. The earlier wording is kept.</Notice> : null}
       {saved === "rewritten" ? (
         <Notice kind="ok">Draft rewritten with your answer. The earlier wording is saved.</Notice>
       ) : null}
@@ -178,6 +197,18 @@ export default async function PostPage({
               {post.body}
             </div>
             <p className="text-sm text-muted">Line breaks are kept when you copy.</p>
+            <details className="rounded-xl bg-ground p-3">
+              <summary className="cursor-pointer font-semibold">Edit the wording</summary>
+              <form action={editPost} className="mt-3 flex flex-col gap-3">
+                <input type="hidden" name="id" value={post.id} />
+                <label htmlFor="body" className="sr-only">Post text</label>
+                <textarea id="body" name="body" rows={12} defaultValue={post.body} className={field} />
+                <div className="flex flex-wrap items-center gap-3">
+                  <SubmitButton className={btnDark} pendingLabel="Saving…">Save my edit</SubmitButton>
+                  <span className="text-sm text-muted">The earlier wording is kept.</span>
+                </div>
+              </form>
+            </details>
           </section>
 
           {platform === "tiktok" ? (
@@ -252,7 +283,7 @@ export default async function PostPage({
           ) : null}
 
           {platform !== "tiktok" ? (
-            <section aria-label="Visual" className={`${card} flex flex-col gap-3`}>
+            <section id="visual" aria-label="Visual" className={`${card} flex flex-col gap-3`}>
               <h2 className={h2}>Do you want a visual for this post?</h2>
               {post.format ? (
                 <p className="text-sm text-muted">Suggested: {post.format}. {post.format_reason}</p>
@@ -270,6 +301,23 @@ export default async function PostPage({
                   </button>
                 ))}
               </form>
+              {post.visual_choice === "generate_image" ? (
+                <GraphicStudio initialText={cardText} footer={footer} title={post.title} />
+              ) : null}
+              {post.visual_choice === "carousel" && carousel.length === 0 ? (
+                <form action={writeCarousel} className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                  <input type="hidden" name="id" value={post.id} />
+                  <SubmitButton className={btnDark} pendingLabel="Writing the slides… about 20 seconds">
+                    Write the slides
+                  </SubmitButton>
+                  <p className="flex-[1_1_240px] text-sm text-muted">
+                    The AI writes the slide text once (a few cents). The app then draws the slides for free.
+                  </p>
+                </form>
+              ) : null}
+              {post.visual_choice === "carousel" && carousel.length > 0 ? (
+                <CarouselStudio slides={carousel} footer={footer} title={post.title} />
+              ) : null}
             </section>
           ) : null}
         </div>

@@ -174,6 +174,7 @@ export const TRENDING_AREAS = [
   "Workflow automation and no-code or low-code tools",
   "Data analytics, dashboards and business intelligence",
   "Careers, hiring and skills in tech",
+  "Major technology and business news worldwide",
   "Tech and business news from Nigeria and Africa",
   "Funny or relatable moments of working life and office technology",
 ];
@@ -182,11 +183,11 @@ export function buildTrendingQuestion(today: string): string {
   return `Today is ${today}. Search the web for what people are discussing this week across ALL of these areas. Run separate searches for different areas:
 ${list(TRENDING_AREAS)}
 
-List 8 to 10 items, with at least one from each area where something recent exists. No more than two items may be about the same company or product. For each give one plain sentence on what is being discussed and its date. Skip anything older than about two weeks.`;
+List 7 to 9 items, with at least one from each area where something recent exists. No more than two items may be about the same company or product. For each give one plain sentence on what is being discussed and its date. Skip anything older than about two weeks.`;
 }
 
 export function buildTrendingIdeasPrompt(notes: string, sources: { title: string; url: string }[]): string {
-  return `From the research notes below, suggest up to 5 post topics for the author.
+  return `From the research notes below, suggest 4 or 5 post topics for the author.
 
 <research_notes>
 ${notes}
@@ -196,7 +197,7 @@ ${notes}
 ${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
 </sources>
 
-Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes.\n\nMake the five as varied as the notes allow: different subject areas, and never two suggestions about the same company, product or event.`;
+Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes.\n\nMake them as varied as the notes allow: each from a different subject area, a mix of worldwide and African stories, and never two suggestions about the same company, product or event.`;
 }
 
 export function buildEventsQuestion(today: string, until: string): string {
@@ -221,4 +222,14 @@ ${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
 </sources>
 
 Include public holidays and occasions she would naturally greet her audience on, and tech dates with a real link to her field. Leave out unrelated awareness days. Use only dates stated in the notes, in YYYY-MM-DD form, and copy each source_url exactly from the list. At most 12.`;
+}
+
+export function buildCarouselPrompt(postBody: string): string {
+  return `Turn the post below into the text for a carousel of slides.
+
+<post>
+${postBody}
+</post>
+
+Give a cover headline, 4 to 6 content slides with one point each, and a closing slide. Keep every slide short enough to read at a glance. Use only what the post says. Do not add facts, numbers or examples that are not in it.`;
 }
