@@ -79,7 +79,7 @@ export function buildLinkedInPrompt(input: {
   tone: Tone;
   recentTitles: string[];
 }): string {
-  return `Write a LinkedIn post from the author's ${input.inputType === "learning_note" ? "learning note" : "rough thought"} below.
+  return `Write a LinkedIn post, in "linkedin", from the author's ${input.inputType === "learning_note" ? "learning note" : "rough thought"} below.
 
 <idea>
 ${input.idea}
@@ -88,6 +88,8 @@ ${input.idea}
 ${toneInstruction(input.tone)}
 
 Choose short or long form to suit the idea, and set "length" accordingly. Recommend the best format and explain why in one sentence. Give exactly two alternative opening lines that take a different angle from the main one. Pick the pillar from the author's list.
+
+Then, in "instagram_facebook", adapt that same post into ONE caption that will be posted on both Instagram and Facebook. Keep the central message. Make it shorter, more visual and more conversational. Do not copy the LinkedIn text sentence for sentence. Recommend a format and, if an image or carousel would help, give the cover text.
 ${input.recentTitles.length ? `\nRecent posts, to avoid repeating an angle:\n${list(input.recentTitles)}` : ""}`;
 }
 

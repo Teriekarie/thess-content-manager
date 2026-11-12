@@ -43,6 +43,13 @@ export const SocialDraftSchema = z.object({
 });
 export type SocialDraft = z.infer<typeof SocialDraftSchema>;
 
+/** One request that returns the LinkedIn post and its Instagram + Facebook caption together. */
+export const CombinedDraftSchema = z.object({
+  linkedin: LinkedInDraftSchema,
+  instagram_facebook: SocialDraftSchema,
+});
+export type CombinedDraft = z.infer<typeof CombinedDraftSchema>;
+
 export const TikTokDraftSchema = z.object({
   title: z.string(),
   hook: z.string().describe("What is said in the first seconds"),

@@ -110,6 +110,7 @@ describe("prompts", () => {
     });
     expect(prompt).toContain("Dashboards nobody opens");
     expect(prompt).toContain("light and funny");
+    expect(prompt).toContain("Instagram and Facebook");
   });
   it("marks style references as not the author's words", () => {
     expect(buildVoiceGuidePrompt(["mine"], ["theirs"])).toMatch(/Never copy sentences/);

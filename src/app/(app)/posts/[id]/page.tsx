@@ -4,7 +4,7 @@ import { CopyButton } from "@/components/copy-button";
 import { Notice } from "@/components/notice";
 import { OutcomeButtons } from "@/components/outcome-buttons";
 import { SubmitButton } from "@/components/submit-button";
-import { btnPrimary, btnSecondary, card, chip, field, h2, label } from "@/components/ui";
+import { btnDark, btnOkSelected, btnPrimary, btnSecondary, card, chip, field, h2, label } from "@/components/ui";
 import { AI_ERROR_MESSAGES, type AiErrorCode } from "@/lib/ai/provider";
 import { requireOwner } from "@/lib/auth/session";
 import { PLATFORMS, type Platform } from "@/lib/content/defaults";
@@ -277,11 +277,8 @@ export default async function PostPage({
 
           <section aria-label="Your feedback" className={`${card} flex flex-col gap-3`}>
             <h2 className={h2}>Does this sound like you?</h2>
-            {lastRating ? (
-              <p className="text-sm text-muted">
-                Your last rating: {lastRating.rating === "up" ? "liked" : "not liked"}
-                {lastRating.comment ? ` ("${lastRating.comment}")` : ""}
-              </p>
+            {lastRating?.comment ? (
+              <p className="text-sm text-muted">Your note: &ldquo;{lastRating.comment}&rdquo;</p>
             ) : null}
             <form action={rateDraft} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={post.id} />
@@ -291,8 +288,14 @@ export default async function PostPage({
                   placeholder="For example: too formal, good opening" />
               </div>
               <div className="flex gap-2">
-                <button type="submit" name="rating" value="up" className={btnSecondary}>Like it</button>
-                <button type="submit" name="rating" value="down" className={btnSecondary}>Not for me</button>
+                <button type="submit" name="rating" value="up" aria-pressed={lastRating?.rating === "up"}
+                  className={lastRating?.rating === "up" ? btnOkSelected : btnSecondary}>
+                  {lastRating?.rating === "up" ? "Liked" : "Like it"}
+                </button>
+                <button type="submit" name="rating" value="down" aria-pressed={lastRating?.rating === "down"}
+                  className={lastRating?.rating === "down" ? btnDark : btnSecondary}>
+                  {lastRating?.rating === "down" ? "Not for me (selected)" : "Not for me"}
+                </button>
               </div>
             </form>
           </section>

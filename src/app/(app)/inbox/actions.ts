@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { buildLinkedInPrompt, buildSystemPrompt } from "@/lib/ai/prompts";
 import { AiError, generateStructured, type AiUsage } from "@/lib/ai/provider";
-import { LinkedInDraftSchema, type LinkedInDraft } from "@/lib/ai/schemas";
+import { CombinedDraftSchema, type CombinedDraft } from "@/lib/ai/schemas";
 import { requireOwner } from "@/lib/auth/session";
 import { LEARNING_NOTE_FIELDS, TONES, type Tone } from "@/lib/content/defaults";
-import { linkedInRow } from "@/lib/content/drafts";
+import { linkedInRow, socialRow } from "@/lib/content/drafts";
 import { buildLearningNote } from "@/lib/content/text";
 import { getBrandContext, logUsage } from "@/lib/data";
 import { lagosToday, nextPostingDate } from "@/lib/dates";
@@ -54,7 +54,10 @@ export async function archiveIdea(form: FormData) {
   redirect("/inbox");
 }
 
-/** Writes a LinkedIn draft from a saved idea. The idea itself is never changed. */
+/**
+ * Writes the LinkedIn draft and its Instagram + Facebook caption in one AI request,
+ * which costs less than two separate requests. The idea itself is never changed.
+ */
 export async function createDraft(form: FormData) {
   const owner = await requireOwner();
   const id = z.uuid().safeParse(text(form, "id"));
@@ -77,7 +80,7 @@ export async function createDraft(form: FormData) {
     .order("created_at", { ascending: false })
     .limit(30);
 
-  let draft: LinkedInDraft;
+  let draft: CombinedDraft;
   let usage: AiUsage;
   try {
     const result = await generateStructured({
@@ -88,28 +91,30 @@ export async function createDraft(form: FormData) {
         tone: idea.tone,
         recentTitles: (recent ?? []).slice(0, 10).map((r) => r.title),
       }),
-      schema: LinkedInDraftSchema,
+      schema: CombinedDraftSchema,
+      maxTokens: 10000,
     });
     draft = result.data;
     usage = result.usage;
   } catch (error) {
     const code = error instanceof AiError ? error.code : "failed";
-    await logUsage(supabase, owner.id, "linkedin_draft", null, code);
+    await logUsage(supabase, owner.id, "linkedin_and_social_draft", null, code);
     redirect(`/inbox?error=ai-${code}`);
   }
-  await logUsage(supabase, owner.id, "linkedin_draft", usage, "ok");
+  await logUsage(supabase, owner.id, "linkedin_and_social_draft", usage, "ok");
 
   const taken = (recent ?? [])
     .filter((r) => r.status !== "discarded" && r.scheduled_for)
     .map((r) => r.scheduled_for as string);
 
+  const scheduledFor = nextPostingDate(lagosToday(), taken);
   const { data: post, error } = await supabase
     .from("posts")
     .insert({
-      ...linkedInRow(draft, brand),
+      ...linkedInRow(draft.linkedin, brand),
       profile_id: owner.id,
       source_idea_id: idea.id,
-      scheduled_for: nextPostingDate(lagosToday(), taken),
+      scheduled_for: scheduledFor,
       generation_metadata: {
         model: usage.model,
         input_tokens: usage.inputTokens,
@@ -120,6 +125,20 @@ export async function createDraft(form: FormData) {
     .select("id")
     .single();
   if (error || !post) redirect("/inbox?error=save");
+
+  // The caption shares the LinkedIn post's date. If saving it fails, the LinkedIn
+  // draft is still kept and the caption can be added from the draft page.
+  await supabase.from("posts").insert({
+    ...socialRow(draft.instagram_facebook, brand),
+    profile_id: owner.id,
+    parent_post_id: post.id,
+    source_idea_id: idea.id,
+    pillar: linkedInRow(draft.linkedin, brand).pillar,
+    objective: draft.linkedin.objective.trim(),
+    tone: draft.linkedin.tone.trim(),
+    scheduled_for: scheduledFor,
+    generation_metadata: { model: usage.model, shared_request_with: post.id },
+  });
 
   await supabase.from("ideas").update({ status: "drafted" }).eq("id", idea.id);
   revalidatePath("/inbox");

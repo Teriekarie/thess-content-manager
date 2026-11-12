@@ -17,3 +17,5 @@ export const chip = "rounded-full bg-[#eef0f4] px-2.5 py-1 text-[13px]";
 export const chipDark = "rounded-full bg-ink px-3 py-1 text-[13px] font-semibold text-white";
 export const h1 = "font-display text-3xl font-bold";
 export const h2 = "text-[17px] font-semibold";
+export const btnOkSelected =
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-ok bg-ok px-4 font-semibold text-white";
