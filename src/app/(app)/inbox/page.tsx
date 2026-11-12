@@ -7,7 +7,7 @@ import { AI_ERROR_MESSAGES, type AiErrorCode } from "@/lib/ai/provider";
 import { requireOwner } from "@/lib/auth/session";
 import { STANDARD_PROMPT, TONES, type Tone } from "@/lib/content/defaults";
 import { createClient } from "@/lib/supabase/server";
-import { archiveIdea, createDraft, findTrendingIdeas } from "./actions";
+import { createDraft, deleteIdea, findTrendingIdeas } from "./actions";
 import { IdeaForm } from "./idea-form";
 
 export const maxDuration = 120;
@@ -71,9 +71,10 @@ export default async function InboxPage({
         </p>
       </header>
 
+      {saved === "deleted" ? <Notice kind="ok">Idea deleted. Any drafts written from it are kept.</Notice> : null}
       {saved === "idea" ? <Notice kind="ok">Idea saved. Press Create draft when you are ready.</Notice> : null}
       {saved?.startsWith("trending-") ? (
-        <Notice kind="ok">{saved.slice(9)} trending suggestions added below. Keep the ones you like and archive the rest.</Notice>
+        <Notice kind="ok">{saved.slice(9)} trending suggestions added below. Keep the ones you like and delete the rest.</Notice>
       ) : null}
       {message ? <Notice kind="warn">{message}</Notice> : null}
 
@@ -145,9 +146,9 @@ export default async function InboxPage({
                     {draftId ? "Write another" : "Create draft"}
                   </SubmitButton>
                 </form>
-                <form action={archiveIdea}>
+                <form action={deleteIdea}>
                   <input type="hidden" name="id" value={idea.id} />
-                  <button type="submit" className={btnDanger}>Archive</button>
+                  <button type="submit" className={btnDanger}>Delete</button>
                 </form>
               </div>
             </article>

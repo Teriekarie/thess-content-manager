@@ -29,7 +29,7 @@ export async function findDates() {
   let sources: WebSource[];
   try {
     const research = await searchWeb({ question: buildEventsQuestion(today, until), maxSearches: 5 });
-    await logUsage(supabase, owner.id, "dates_search", research.usage, "ok");
+    await logUsage(supabase, owner.id, "dates_search", research.usage, `ok: ${research.detail}`.slice(0, 200));
     sources = research.sources;
     if (!research.notes || sources.length === 0) redirect("/dates?error=nothing");
 
@@ -139,7 +139,7 @@ export async function draftForDate(form: FormData) {
     research: { status: "skipped", checked_on: null, notes: "", sources: [] },
   });
   if (!result.ok) {
-    await supabase.from("ideas").update({ status: "archived" }).eq("id", idea.id);
+    await supabase.from("ideas").delete().eq("id", idea.id);
     redirect(`/dates?error=${result.error === "save" ? "save" : `ai-${result.error}`}`);
   }
 

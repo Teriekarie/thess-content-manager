@@ -49,7 +49,7 @@ export async function researchIdea(
       question: buildResearchQuestion(idea, lagosToday()),
       maxSearches: 2,
     });
-    await logUsage(supabase, profileId, "web_check", result.usage, "ok");
+    await logUsage(supabase, profileId, "web_check", result.usage, `ok: ${result.detail}`.slice(0, 200));
     return {
       status: "done",
       checked_on: lagosToday(),

@@ -45,14 +45,16 @@ export async function addIdea(form: FormData) {
   redirect("/inbox?saved=idea");
 }
 
-export async function archiveIdea(form: FormData) {
+/** Deletes an idea for good. Drafts already written from it are kept. */
+export async function deleteIdea(form: FormData) {
   await requireOwner();
   const id = z.uuid().safeParse(text(form, "id"));
   if (!id.success) redirect("/inbox");
   const supabase = await createClient();
-  await supabase.from("ideas").update({ status: "archived" }).eq("id", id.data);
+  await supabase.from("ideas").delete().eq("id", id.data);
   revalidatePath("/inbox");
-  redirect("/inbox");
+  revalidatePath("/");
+  redirect("/inbox?saved=deleted");
 }
 
 /**
@@ -111,7 +113,7 @@ export async function findTrendingIdeas() {
       question: buildTrendingQuestion(lagosToday()),
       maxSearches: 3,
     });
-    await logUsage(supabase, owner.id, "trending_search", research.usage, "ok");
+    await logUsage(supabase, owner.id, "trending_search", research.usage, `ok: ${research.detail}`.slice(0, 200));
     sources = research.sources;
     if (!research.notes || sources.length === 0) redirect("/inbox?error=nothing-trending");
 
