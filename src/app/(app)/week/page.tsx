@@ -15,6 +15,7 @@ import {
 } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
+import { setOutcome } from "../posts/actions";
 import { generatePlan } from "./actions";
 
 export const maxDuration = 120;
@@ -59,10 +60,11 @@ function describePlan(plan: string | undefined): { kind: "ok" | "warn"; text: st
 export default async function WeekPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; error?: string; plan?: string }>;
+  searchParams: Promise<{ week?: string; error?: string; plan?: string; discarded?: string }>;
 }) {
   const owner = await requireOwner();
-  const { week, error, plan } = await searchParams;
+  const { week, error, plan, discarded } = await searchParams;
+  const discardedId = discarded && /^[0-9a-f-]{36}$/.test(discarded) ? discarded : null;
   const today = lagosToday();
   const start = weekStart(week && isValidDate(week) ? week : today);
   const days = weekDates(start);
@@ -76,6 +78,7 @@ export default async function WeekPage({
       .from("posts")
       .select(columns)
       .eq("profile_id", owner.id)
+      .neq("status", "discarded")
       .gte("scheduled_for", start)
       .lte("scheduled_for", days[6])
       .order("created_at"),
@@ -149,6 +152,16 @@ export default async function WeekPage({
 
       {planMessage ? <Notice kind={planMessage.kind}>{planMessage.text}</Notice> : null}
 
+      {discardedId ? (
+        <form action={setOutcome} role="status"
+          className="flex flex-wrap items-center gap-3 rounded-lg bg-ok-soft px-4 py-2 text-sm text-ok">
+          <input type="hidden" name="id" value={discardedId} />
+          <input type="hidden" name="outcome" value="undo" />
+          <input type="hidden" name="back" value={back} />
+          <span>Post discarded and removed from your board.</span>
+          <button type="submit" className="min-h-11 font-semibold underline">Undo</button>
+        </form>
+      ) : null}
       {error === "date" ? <Notice kind="warn">Please choose a valid date.</Notice> : null}
 
       {posts.length === 0 ? (

@@ -86,6 +86,11 @@ export async function setOutcome(form: FormData) {
 
   await supabase.from("posts").update(change).eq("id", post.id);
   refresh(post.id);
+  // A discarded post leaves the board straight away. The board shows a one-time Undo.
+  if (outcome.data === "discard" && !back.startsWith("/calendar")) {
+    const board = back.startsWith("/week") ? back : "/week";
+    redirect(`${board}${board.includes("?") ? "&" : "?"}discarded=${post.id}`);
+  }
   redirect(back);
 }
 
