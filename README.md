@@ -34,6 +34,8 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable key | No (safe by design; Row Level Security protects the data) |
 | `OWNER_EMAIL` | The only email address allowed to sign in | Server only |
 | `ANTHROPIC_API_KEY` | Lets the app use Claude. Created at console.anthropic.com | **Yes, server only** |
+| `CRON_SECRET` | A long random string. Vercel sends it when it runs the automatic Sunday plan | **Yes, server only** |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase secret key, used only by the automatic Sunday plan | **Yes, server only** |
 | `AI_RESEARCH_MODEL` | Optional. The cheaper model used only for web searches. Defaults to `claude-haiku-5-5` | No |
 | `AI_MODEL` | Optional. Which Claude model writes the drafts. Defaults to `claude-opus-5-5`; `claude-sonnet-5-5` and `claude-haiku-5-5` are cheaper | No |
 
@@ -87,6 +89,10 @@ After your first successful sign-in, under Authentication, Sign In / Providers, 
 5. Each AI call is recorded in `usage_logs` with token counts and an estimated cost. Prompts and answers are not logged.
 
 To change the model, set `AI_MODEL` in Vercel and redeploy. Prices for the estimate live in `src/lib/ai/pricing.ts`.
+
+## The automatic weekly plan
+
+Every Sunday at 18:00 Lagos time (17:00 UTC, cron `0 17 * * 0` in `vercel.json`) Vercel calls `/api/jobs/weekly-plan`. It gives the coming Tuesday, Wednesday and Thursday a draft each: saved ideas first, then trending topics. It only fills empty days, so running it twice makes no duplicates, and it never posts anything. It needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY`; without them it does nothing and the button on This Week still works. On Vercel's free plan the run can start up to an hour late.
 
 ## Known limits
 

@@ -41,10 +41,18 @@ describe("secrets stay on the server", () => {
     }
   });
 
-  it("the service-role key is not used anywhere in Phase 0", () => {
-    for (const file of source) {
-      expect(readFileSync(file, "utf8"), file).not.toMatch(/SERVICE_ROLE/);
-    }
+  it("the full-access database key is read in one server-only file and nowhere else", () => {
+    const users = source.filter((file) => /SERVICE_ROLE/.test(readFileSync(file, "utf8")));
+    expect(users.map((f) => path.relative(root, f))).toEqual(["src/lib/supabase/admin.ts"]);
+    expect(readFileSync(users[0], "utf8")).toMatch(/^import "server-only";/);
+  });
+
+  it("only the scheduled job uses the full-access database client", () => {
+    const users = source
+      .filter((file) => /createAdminClient/.test(readFileSync(file, "utf8")))
+      .map((f) => path.relative(root, f))
+      .sort();
+    expect(users).toEqual(["src/app/api/jobs/weekly-plan/route.ts", "src/lib/supabase/admin.ts"]);
   });
 
   it("the example settings file contains names only, no values for secrets", () => {

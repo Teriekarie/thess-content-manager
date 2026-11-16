@@ -42,3 +42,4 @@ Agreed with Thess on 11 November 2026 after reviewing the design preview. Where 
 - **Weekly plan (12 November 2026).** When this week's posting days have passed or are full, the plan button fills next week instead.
 - **Handle on graphics (12 November 2026).** Thess's handle is @teriekarie. It is stored in `brand_settings.handle`, editable in Settings, and drawn on every graphic and carousel slide.
 - **Holidays and dates (12 November 2026).** Not only Nigerian dates: international days, global occasions, cultural and shopping moments and tech events, over the next three months.
+- **Weekly plan (16 November 2026).** The app should hand Thess a full week by itself. The plan uses saved ideas first, then fills empty posting days from trending topics. It runs from the button and automatically every Sunday at 18:00 Lagos. Thess declined the email notification; she checks the app instead.

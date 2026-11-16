@@ -18,7 +18,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { setOutcome } from "../posts/actions";
 import { generatePlan } from "./actions";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 type Row = {
   id: string;
@@ -43,17 +43,23 @@ const ORDER: Platform[] = ["linkedin", "instagram_facebook", "tiktok"];
 function describePlan(plan: string | undefined): { kind: "ok" | "warn"; text: string } | null {
   if (!plan) return null;
   if (plan === "full") return { kind: "ok", text: "Every posting day in this week already has a post." };
-  if (plan === "no-ideas") {
-    return { kind: "warn", text: "There are no new ideas to draft from. Add some in the Idea Inbox first." };
+  if (plan === "nothing" || plan === "no-ideas") {
+    return {
+      kind: "warn",
+      text: "No drafts could be written this time. Add an idea in the Idea Inbox, or try again in a few minutes.",
+    };
   }
-  const match = plan.match(/^(\d+)-(\d+)$/);
+  const match = plan.match(/^(\d+)-(\d+)(?:-(\d+))?$/);
   if (!match) return null;
   const made = Number(match[1]);
   const failed = Number(match[2]);
-  if (failed === 0) return { kind: "ok", text: `${made} draft${made === 1 ? "" : "s"} added to this week.` };
+  const trending = Number(match[3] ?? 0);
+  const drafts = `${made} draft${made === 1 ? "" : "s"} added to this week`;
+  const source = trending > 0 ? `, ${trending} of them from what is trending` : "";
+  if (failed === 0) return { kind: "ok", text: `${drafts}${source}.` };
   return {
     kind: "warn",
-    text: `${made} draft${made === 1 ? "" : "s"} added. ${failed} could not be written, so the plan is partial. Press the button again to retry.`,
+    text: `${drafts}${source}. ${failed} could not be written, so the plan is partial. Press the button again to retry.`,
   };
 }
 
@@ -73,7 +79,7 @@ export default async function WeekPage({
 
   const supabase = await createClient();
   const columns = "id, platform, title, format, length, visual_choice, status, scheduled_for, carried_over_count";
-  const [{ data: inWeek }, { data: undated }] = await Promise.all([
+  const [{ data: inWeek }, { data: undated }, { data: lastAuto }] = await Promise.all([
     supabase
       .from("posts")
       .select(columns)
@@ -89,12 +95,31 @@ export default async function WeekPage({
       .is("scheduled_for", null)
       .eq("status", "planned")
       .order("created_at"),
+    supabase
+      .from("scheduled_jobs")
+      .select("status, started_at, error_summary")
+      .eq("profile_id", owner.id)
+      .eq("job_type", "weekly_plan_auto")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
   const posts = (inWeek ?? []) as Row[];
   const active = posts.filter((p) => p.status !== "discarded");
   const counts = ORDER.map((p) => `${PLATFORMS[p]} ${active.filter((x) => x.platform === p).length}`);
 
   const planMessage = describePlan(plan);
+  const autoLine = lastAuto
+    ? `Automatic plan last ran ${formatDate(String(lastAuto.started_at).slice(0, 10))}: ${
+        lastAuto.status === "done"
+          ? "week filled"
+          : lastAuto.status === "partial"
+            ? "partly filled"
+            : lastAuto.status === "skipped"
+              ? "nothing needed"
+              : "it did not work"
+      }${lastAuto.error_summary ? `. ${lastAuto.error_summary}` : "."}`
+    : "The automatic plan runs every Sunday at 6:00 PM Lagos time. It has not run yet.";
 
   const Card = ({ post }: { post: Row }) => (
     <article className={`flex flex-wrap gap-4 rounded-xl border border-line bg-surface p-5 ${
@@ -137,14 +162,17 @@ export default async function WeekPage({
       </header>
 
       <section aria-label="Plan this week" className={`${card} flex flex-wrap items-center justify-between gap-4`}>
-        <p className="flex-[1_1_320px] text-sm text-muted">
-          Fill the free posting days (Tuesday, Wednesday, Thursday) with drafts from your saved ideas,
-          oldest first. Days that already have a post are left alone. If this week&apos;s days have
-          passed, next week is planned instead.
-        </p>
+        <div className="flex flex-[1_1_320px] flex-col gap-1 text-sm text-muted">
+          <p>
+            Gives Tuesday, Wednesday and Thursday a post each. Your saved ideas are used first, then
+            what is trending fills any empty day. Days that already have a post are left alone. If
+            this week&apos;s days have passed, next week is planned instead.
+          </p>
+          <p>{autoLine}</p>
+        </div>
         <form action={generatePlan}>
           <input type="hidden" name="week" value={start} />
-          <SubmitButton className={btnDark} pendingLabel="Writing the week… up to a minute">
+          <SubmitButton className={btnDark} pendingLabel="Writing the week… up to two minutes">
             Generate this week&apos;s plan
           </SubmitButton>
         </form>

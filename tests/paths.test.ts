@@ -12,6 +12,10 @@ describe("isPublicPath", () => {
       expect(isPublicPath(path)).toBe(false);
     }
   });
+  it("lets the scheduler reach its job, which checks its own secret", () => {
+    expect(isPublicPath("/api/jobs/weekly-plan")).toBe(true);
+    expect(isPublicPath("/api/jobsx")).toBe(false);
+  });
   it("keeps other API routes private", () => {
     expect(isPublicPath("/api/ideas")).toBe(false);
     expect(isPublicPath("/api/healthcheck-other")).toBe(false);

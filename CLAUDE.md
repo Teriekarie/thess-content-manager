@@ -84,6 +84,8 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - Web search goes through `searchWeb()` in `src/lib/ai/research.ts`. Source links are read from the search results, never from model prose. A failed search never blocks a draft.
 - Dates found by web search (`calendar_events`) are only saved when the source link came back from the search and the date is valid and in the window.
 - Analytics are manual entry. An empty box is stored as null ("not available"), never zero. Page numbers are per platform per week (Instagram and Facebook separately); post numbers are per post.
+- The weekly plan is `planWeek()` in `src/lib/planning.ts`, shared by the button and the Sunday job (`src/app/api/jobs/weekly-plan/route.ts`, cron `0 17 * * 0` in `vercel.json`). It only fills free days, so re-running is safe. Each run is recorded in `scheduled_jobs`. It is one invocation, not resumable steps (PRD 14.1a): acceptable while it stays under the 300 second limit.
+- `createAdminClient()` (service-role key) is for the scheduled job only; a test enforces this. Always filter by profile id with it.
 - A rewrite saves the old wording to `post_versions` before updating the post.
 - Dates are `YYYY-MM-DD` strings in Africa/Lagos; use `src/lib/dates.ts`, never raw `new Date()` arithmetic.
 - Server actions redirect with `?saved=` or `?error=` codes; pages turn the codes into plain messages.
@@ -98,4 +100,5 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
   - [x] Part 2 built: Calendar, Home dashboard, live web check, trending ideas, follow-up answers with saved versions, weekly plan button (awaiting Thess's test)
 - [x] Holidays and key dates, and Analytics, built (awaiting Thess's test). Automatic holiday drafting needs the scheduler and is not built.
 - [x] Designed graphics and carousel designer built (drawn on a canvas in the browser; awaiting Thess's test). No PDF export yet.
-- [ ] Remaining PRD phases (research automation, learning, integrations)
+- [x] Weekly plan fills every free posting day (saved ideas first, then trending), by button and automatically every Sunday 18:00 Lagos via Vercel Cron. No email (Thess declined it). Awaiting Thess's test; the automatic run needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel.
+- [ ] Remaining PRD phases (learning from feedback, integrations)

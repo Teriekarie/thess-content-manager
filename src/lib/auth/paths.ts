@@ -1,5 +1,6 @@
 /** Pages and routes that can be opened without signing in. Everything else is private. */
-const PUBLIC_PREFIXES = ["/login", "/auth/", "/api/health"];
+// "/api/jobs/" has no sign-in because the scheduler calls it; each job checks CRON_SECRET itself.
+const PUBLIC_PREFIXES = ["/login", "/auth/", "/api/health", "/api/jobs/"];
 
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(

@@ -3,15 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { buildSystemPrompt, buildTrendingIdeasPrompt, buildTrendingQuestion } from "@/lib/ai/prompts";
-import { AiError, generateStructured } from "@/lib/ai/provider";
-import { searchWeb, type WebSource } from "@/lib/ai/research";
-import { TrendingIdeasSchema, type TrendingIdeas } from "@/lib/ai/schemas";
+import { AiError } from "@/lib/ai/provider";
 import { requireOwner } from "@/lib/auth/session";
 import { LEARNING_NOTE_FIELDS, TONES, type Tone } from "@/lib/content/defaults";
 import { buildLearningNote } from "@/lib/content/text";
-import { getBrandContext, logUsage } from "@/lib/data";
+import { getBrandContext } from "@/lib/data";
 import { draftFromIdea, overBudget, researchIdea } from "@/lib/drafting";
+import { fetchTrendingIdeas } from "@/lib/trending";
 import { lagosToday, nextPostingDate } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 
@@ -106,44 +104,12 @@ export async function findTrendingIdeas() {
   if (await overBudget(supabase, owner.id)) redirect("/inbox?error=budget");
 
   const brand = await getBrandContext(supabase, owner.id);
-  let ideas: TrendingIdeas["ideas"];
-  let sources: WebSource[];
+  let rows;
   try {
-    const research = await searchWeb({
-      question: buildTrendingQuestion(lagosToday()),
-      maxSearches: 3,
-    });
-    await logUsage(supabase, owner.id, "trending_search", research.usage, `ok: ${research.detail}`.slice(0, 200));
-    sources = research.sources;
-    if (!research.notes || sources.length === 0) redirect("/inbox?error=nothing-trending");
-
-    const result = await generateStructured({
-      system: buildSystemPrompt(brand),
-      prompt: buildTrendingIdeasPrompt(research.notes, sources.slice(0, 20)),
-      schema: TrendingIdeasSchema,
-      maxTokens: 4000,
-    });
-    await logUsage(supabase, owner.id, "trending_ideas", result.usage, "ok");
-    ideas = result.data.ideas;
+    rows = await fetchTrendingIdeas(supabase, owner.id, brand);
   } catch (error) {
-    if (!(error instanceof AiError)) throw error; // lets redirect() through
-    await logUsage(supabase, owner.id, "trending_ideas", null, error.code);
-    redirect(`/inbox?error=ai-${error.code}`);
+    redirect(`/inbox?error=ai-${error instanceof AiError ? error.code : "failed"}`);
   }
-
-  // Only keep suggestions whose link really came back from the search.
-  const known = new Map(sources.map((s) => [s.url, s]));
-  const rows = ideas
-    .filter((i) => known.has(i.source_url) && i.topic.trim())
-    .slice(0, 5)
-    .map((i) => ({
-      profile_id: owner.id,
-      raw_content: `${i.topic.trim()}\n\nAngle: ${i.angle.trim()}`,
-      input_type: "trending",
-      tone: i.tone,
-      source_url: i.source_url,
-      source_title: known.get(i.source_url)?.title ?? "",
-    }));
   if (rows.length === 0) redirect("/inbox?error=nothing-trending");
 
   const { error } = await supabase.from("ideas").insert(rows);
