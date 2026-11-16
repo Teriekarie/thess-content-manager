@@ -24,6 +24,8 @@ type Row = {
   id: string;
   platform: Platform;
   title: string;
+  pillar: string;
+  source_idea_id: string | null;
   format: string;
   length: string;
   visual_choice: string | null;
@@ -78,7 +80,8 @@ export default async function WeekPage({
   const back = isThisWeek ? "/week" : `/week?week=${start}`;
 
   const supabase = await createClient();
-  const columns = "id, platform, title, format, length, visual_choice, status, scheduled_for, carried_over_count";
+  const columns =
+    "id, platform, title, pillar, format, length, visual_choice, status, scheduled_for, carried_over_count, source_idea_id";
   const [{ data: inWeek }, { data: undated }, { data: lastAuto }] = await Promise.all([
     supabase
       .from("posts")
@@ -105,6 +108,16 @@ export default async function WeekPage({
       .maybeSingle(),
   ]);
   const posts = (inWeek ?? []) as Row[];
+  // Where each post came from, for the Source link on trending and holiday posts.
+  const ideaIds = [...new Set([...posts, ...((undated ?? []) as Row[])].map((p) => p.source_idea_id).filter(Boolean))];
+  const { data: sourceRows } = ideaIds.length
+    ? await supabase.from("ideas").select("id, source_url, source_title").in("id", ideaIds as string[])
+    : { data: [] };
+  const sources = new Map(
+    (sourceRows ?? [])
+      .filter((r) => typeof r.source_url === "string" && /^https?:\/\//.test(r.source_url))
+      .map((r) => [r.id as string, { url: r.source_url as string, title: (r.source_title as string) || (r.source_url as string) }]),
+  );
   const active = posts.filter((p) => p.status !== "discarded");
   const counts = ORDER.map((p) => `${PLATFORMS[p]} ${active.filter((x) => x.platform === p).length}`);
 
@@ -138,6 +151,13 @@ export default async function WeekPage({
           ) : null}
         </div>
         <h3 className="text-[17px] font-semibold leading-snug">{post.title}</h3>
+        {post.pillar ? <p className="text-sm text-muted">Pillar: {post.pillar}</p> : null}
+        {post.source_idea_id && sources.has(post.source_idea_id) ? (
+          <a href={sources.get(post.source_idea_id)!.url} target="_blank" rel="noopener noreferrer"
+            className="truncate text-sm text-muted underline">
+            Source: {sources.get(post.source_idea_id)!.title}
+          </a>
+        ) : null}
         <OutcomeButtons postId={post.id} status={post.status} scheduledFor={post.scheduled_for} back={back} today={today} />
       </div>
       <Link href={`/posts/${post.id}`} className={`${btnSecondary} self-start`}>Open</Link>

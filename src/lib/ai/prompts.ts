@@ -88,6 +88,7 @@ export function buildLinkedInPrompt(input: {
   tone: Tone;
   recentTitles: string[];
   research?: string | null;
+  pillarHint?: { prefer?: string | null; avoid: string[] } | null;
   revision?: { currentPost: string; question: string; answer: string } | null;
 }): string {
   return `Write a LinkedIn post, in "linkedin", from ${IDEA_KIND[input.inputType]} below.
@@ -117,7 +118,15 @@ ${toneInstruction(input.tone)}
 Choose short or long form to suit the idea, and set "length" accordingly. Recommend the best format and explain why in one sentence. Give exactly two alternative opening lines that take a different angle from the main one. Pick the pillar from the author's list.
 
 Then, in "instagram_facebook", adapt that same post into ONE caption that will be posted on both Instagram and Facebook. Keep the central message. Make it shorter, more visual and more conversational. Do not copy the LinkedIn text sentence for sentence. Recommend a format and, if an image or carousel would help, give the cover text.
-${input.recentTitles.length ? `\nRecent posts, to avoid repeating an angle:\n${list(input.recentTitles)}` : ""}`;
+${input.recentTitles.length ? `\nRecent posts, to avoid repeating an angle:\n${list(input.recentTitles)}` : ""}${
+    input.pillarHint?.prefer
+      ? `\nWrite this one for the pillar "${input.pillarHint.prefer}", so the week covers different pillars.`
+      : ""
+  }${
+    input.pillarHint?.avoid.length
+      ? `\nOther posts this week already cover these pillars:\n${list(input.pillarHint.avoid)}\nIf the idea honestly fits a different pillar, take that angle so the week has variety. Never force a pillar the idea does not fit.`
+      : ""
+  }`;
 }
 
 export function buildSocialPrompt(linkedInBody: string): string {
@@ -186,7 +195,11 @@ ${list(TRENDING_AREAS)}
 List 7 to 9 items, with at least one from each area where something recent exists. No more than two items may be about the same company or product. For each give one plain sentence on what is being discussed and its date. Skip anything older than about two weeks.`;
 }
 
-export function buildTrendingIdeasPrompt(notes: string, sources: { title: string; url: string }[]): string {
+export function buildTrendingIdeasPrompt(
+  notes: string,
+  sources: { title: string; url: string }[],
+  avoidPillars: string[] = [],
+): string {
   return `From the research notes below, suggest 4 or 5 post topics for the author.
 
 <research_notes>
@@ -197,7 +210,13 @@ ${notes}
 ${sources.map((s) => `- ${s.title}: ${s.url}`).join("\n")}
 </sources>
 
-Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes.\n\nMake them as varied as the notes allow: each from a different subject area, a mix of worldwide and African stories, and never two suggestions about the same company, product or event.`;
+Each suggestion needs a topic, an angle phrased as a question she could answer in her own words, a fitting tone (include at least one light or funny one when the notes allow), and the source_url copied exactly from the list above. Only suggest topics that appear in the notes.\n\nGive each suggestion the content pillar it fits best, copied exactly from the author's list of pillars. Every suggestion must use a different pillar, so a week built from them is not all one subject.${
+    avoidPillars.length
+      ? ` These pillars are already covered this week, so choose others first: ${avoidPillars.join("; ")}.`
+      : ""
+  }
+
+Make them as varied as the notes allow: each from a different subject area, a mix of worldwide and African stories, and never two suggestions about the same company, product or event.`;
 }
 
 export function buildEventsQuestion(today: string, until: string): string {

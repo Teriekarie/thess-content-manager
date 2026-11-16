@@ -73,7 +73,12 @@ export async function draftFromIdea(
   profileId: string,
   idea: IdeaRow,
   brand: BrandContext,
-  options: { scheduledFor: string; recentTitles: string[]; research: ResearchRecord },
+  options: {
+    scheduledFor: string;
+    recentTitles: string[];
+    research: ResearchRecord;
+    pillarHint?: { prefer?: string | null; avoid: string[] } | null;
+  },
 ): Promise<DraftResult> {
   let result;
   try {
@@ -84,6 +89,7 @@ export async function draftFromIdea(
         inputType: idea.input_type,
         tone: idea.tone,
         recentTitles: options.recentTitles,
+        pillarHint: options.pillarHint ?? null,
         research: options.research.status === "done" ? options.research.notes : null,
       }),
       schema: CombinedDraftSchema,

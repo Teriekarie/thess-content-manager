@@ -81,7 +81,11 @@ export default async function PostPage({
       .select("id, platform, parent_post_id")
       .or(`id.eq.${rootId},parent_post_id.eq.${rootId}`),
     post.source_idea_id
-      ? supabase.from("ideas").select("raw_content, input_type").eq("id", post.source_idea_id).maybeSingle()
+      ? supabase
+          .from("ideas")
+          .select("raw_content, input_type, source_url, source_title")
+          .eq("id", post.source_idea_id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
       .from("feedback")
@@ -395,9 +399,18 @@ export default async function PostPage({
                 ) : null,
               )}
             </dl>
+            {idea?.source_url && /^https?:\/\//.test(idea.source_url) ? (
+              <a href={idea.source_url} target="_blank" rel="noopener noreferrer"
+                className="flex min-h-11 items-center gap-2 rounded-lg bg-accent-soft px-3 text-sm font-semibold text-[#4c1d95] underline">
+                <span className="shrink-0">Source:</span>
+                <span className="truncate">{idea.source_title || idea.source_url}</span>
+              </a>
+            ) : null}
             {idea ? (
               <details className="rounded-lg bg-ground p-3 text-sm">
-                <summary className="cursor-pointer font-semibold">Your original idea</summary>
+                <summary className="cursor-pointer font-semibold">
+                  {idea.input_type === "trending" || idea.input_type === "event" ? "The topic it came from" : "Your original idea"}
+                </summary>
                 <p className="mt-2 whitespace-pre-line">{idea.raw_content}</p>
               </details>
             ) : null}

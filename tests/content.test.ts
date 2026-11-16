@@ -113,6 +113,16 @@ describe("prompts", () => {
     expect(prompt).toContain("Dashboards nobody opens");
     expect(prompt).toContain("light and funny");
     expect(prompt).toContain("Instagram and Facebook");
+    const hinted = buildLinkedInPrompt({
+      idea: "x",
+      inputType: "trending",
+      tone: "auto",
+      recentTitles: [],
+      pillarHint: { prefer: "Relatable technology humour", avoid: ["Data, analytics & business intelligence"] },
+    });
+    expect(hinted).toContain('for the pillar "Relatable technology humour"');
+    expect(hinted).toContain("Data, analytics & business intelligence");
+    expect(hinted).toMatch(/Never force a pillar/);
   });
   it("marks style references as not the author's words", () => {
     expect(buildVoiceGuidePrompt(["mine"], ["theirs"])).toMatch(/Never copy sentences/);

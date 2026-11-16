@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { isAuthorisedCron } from "@/lib/auth/cron";
-import { freePostingDays, orderIdeas } from "@/lib/planning";
+import { freePostingDays, orderIdeas, pickVaried } from "@/lib/planning";
 
 describe("free posting days", () => {
   const week = "2026-11-16"; // a Monday
@@ -45,5 +45,27 @@ describe("scheduled job secret", () => {
     expect(isAuthorisedCron("Bearer ", "")).toBe(false);
     expect(isAuthorisedCron("Bearer undefined", undefined)).toBe(false);
     expect(isAuthorisedCron("Bearer short", "short")).toBe(false);
+  });
+});
+
+describe("variety across the week", () => {
+  // Fictional sample data only.
+  const found = [
+    { id: 1, pillar: "AI, agents & intelligent automation" },
+    { id: 2, pillar: "ai, agents & intelligent automation" },
+    { id: 3, pillar: "Data, analytics & business intelligence" },
+    { id: 4, pillar: "Relatable technology humour" },
+    { id: 5, pillar: "Career, growth & personal experiences" },
+  ];
+  it("picks one post per pillar instead of three on the same subject", () => {
+    expect(pickVaried(found, 3, []).map((f) => f.id)).toEqual([1, 3, 4]);
+  });
+  it("steers away from pillars the week already covers", () => {
+    expect(pickVaried(found, 2, ["AI, agents & intelligent automation"]).map((f) => f.id)).toEqual([3, 4]);
+  });
+  it("still fills the week when there are not enough different pillars", () => {
+    const narrow = [found[0], found[1]];
+    expect(pickVaried(narrow, 2, [])).toHaveLength(2);
+    expect(pickVaried(found, 9, [])).toHaveLength(5);
   });
 });

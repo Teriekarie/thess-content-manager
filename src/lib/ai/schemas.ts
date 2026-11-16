@@ -77,6 +77,7 @@ export const TrendingIdeasSchema = z.object({
       topic: z.string().describe("What is being discussed, in one plain sentence, with its date if known"),
       angle: z.string().describe("A question or angle the author could respond to. Do not write her opinion for her."),
       tone: z.enum(["funny", "opinion", "school_of_thought", "serious"]),
+      pillar: z.string().describe("The author's content pillar this fits best, copied exactly from her list"),
       source_url: z.string().describe("Copied exactly from the provided source list"),
     }),
   ),

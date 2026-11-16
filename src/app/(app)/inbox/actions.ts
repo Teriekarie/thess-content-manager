@@ -106,7 +106,7 @@ export async function findTrendingIdeas() {
   const brand = await getBrandContext(supabase, owner.id);
   let rows;
   try {
-    rows = await fetchTrendingIdeas(supabase, owner.id, brand);
+    rows = (await fetchTrendingIdeas(supabase, owner.id, brand)).map((s) => s.row);
   } catch (error) {
     redirect(`/inbox?error=ai-${error instanceof AiError ? error.code : "failed"}`);
   }

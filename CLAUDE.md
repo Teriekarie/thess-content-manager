@@ -85,6 +85,7 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - Dates found by web search (`calendar_events`) are only saved when the source link came back from the search and the date is valid and in the window.
 - Analytics are manual entry. An empty box is stored as null ("not available"), never zero. Page numbers are per platform per week (Instagram and Facebook separately); post numbers are per post.
 - The weekly plan is `planWeek()` in `src/lib/planning.ts`, shared by the button and the Sunday job (`src/app/api/jobs/weekly-plan/route.ts`, cron `0 17 * * 0` in `vercel.json`). It only fills free days, so re-running is safe. Each run is recorded in `scheduled_jobs`. It is one invocation, not resumable steps (PRD 14.1a): acceptable while it stays under the 300 second limit.
+- The plan spreads a week across pillars: trending suggestions carry a pillar, `pickVaried()` chooses one per pillar, and each draft gets a `pillarHint` (prefer and avoid). The hint never forces a pillar onto one of Thess's own ideas.
 - `createAdminClient()` (service-role key) is for the scheduled job only; a test enforces this. Always filter by profile id with it.
 - A rewrite saves the old wording to `post_versions` before updating the post.
 - Dates are `YYYY-MM-DD` strings in Africa/Lagos; use `src/lib/dates.ts`, never raw `new Date()` arithmetic.

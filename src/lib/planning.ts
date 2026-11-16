@@ -29,6 +29,33 @@ export function orderIdeas<T extends { input_type: string; created_at: string }>
   ];
 }
 
+const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * Picks `count` items so the week covers different pillars: first ones whose pillar is
+ * neither already used this week nor already picked, then whatever is left if that is not enough.
+ */
+export function pickVaried<T extends { pillar: string }>(
+  items: readonly T[],
+  count: number,
+  usedPillars: readonly string[],
+): T[] {
+  const picked: T[] = [];
+  const taken = [...usedPillars];
+  for (const item of items) {
+    if (picked.length >= count) break;
+    if (item.pillar && !taken.some((p) => same(p, item.pillar))) {
+      picked.push(item);
+      taken.push(item.pillar);
+    }
+  }
+  for (const item of items) {
+    if (picked.length >= count) break;
+    if (!picked.includes(item)) picked.push(item);
+  }
+  return picked;
+}
+
 export type PlanResult = {
   week: string;
   status: "done" | "partial" | "full" | "nothing";
@@ -54,7 +81,7 @@ export async function planWeek(
   async function look(weekOf: string) {
     const { data } = await supabase
       .from("posts")
-      .select("scheduled_for, status, title")
+      .select("scheduled_for, status, title, pillar")
       .eq("profile_id", profileId)
       .eq("platform", "linkedin")
       .gte("scheduled_for", weekOf)
@@ -62,16 +89,17 @@ export async function planWeek(
     const kept = (data ?? []).filter((p) => p.status !== "discarded");
     return {
       titles: kept.map((p) => p.title as string),
+      pillars: [...new Set(kept.map((p) => (p.pillar as string) ?? "").filter(Boolean))],
       free: freePostingDays(weekOf, today, kept.map((p) => p.scheduled_for as string)),
     };
   }
 
   let week = weekStart(options.week);
-  let { titles, free } = await look(week);
+  let { titles, pillars: usedPillars, free } = await look(week);
   // When this week's posting days have passed or are full, plan next week instead.
   if (free.length === 0 && week === weekStart(today)) {
     week = addDays(week, 7);
-    ({ titles, free } = await look(week));
+    ({ titles, pillars: usedPillars, free } = await look(week));
   }
   const base = { week, made: 0, failed: 0, fromOwnIdeas: 0, fromTrending: 0 };
   if (free.length === 0) return { ...base, status: "full", note: "" };
@@ -89,20 +117,26 @@ export async function planWeek(
   // Not enough saved ideas: look at what is trending and use that for the empty days.
   const brand = await getBrandContext(supabase, profileId);
   let note = "";
+  const preferred = new Map<string, string>();
   const missing = free.length - chosen.length;
   if (missing > 0) {
     if (await overBudget(supabase, profileId)) {
       note = "Your monthly AI budget is used up, so trending topics were not searched.";
     } else {
       try {
-        const rows = (await fetchTrendingIdeas(supabase, profileId, brand)).slice(0, missing);
-        if (rows.length) {
+        // Choose suggestions from different pillars, so the week is not all one subject.
+        const found = await fetchTrendingIdeas(supabase, profileId, brand, usedPillars);
+        const rows = pickVaried(found, missing, usedPillars);
+        for (const suggestion of rows) {
           const { data: added } = await supabase
             .from("ideas")
-            .insert(rows)
-            .select("id, raw_content, input_type, tone, created_at");
-          chosen.push(...((added ?? []) as (IdeaRow & { created_at: string })[]));
-          fromTrending += added?.length ?? 0;
+            .insert(suggestion.row)
+            .select("id, raw_content, input_type, tone, created_at")
+            .single();
+          if (!added) continue;
+          chosen.push(added as IdeaRow & { created_at: string });
+          preferred.set(added.id, suggestion.pillar);
+          fromTrending += 1;
         }
         if (rows.length < missing) note = "The trending search did not find enough suitable topics.";
       } catch (error) {
@@ -121,6 +155,14 @@ export async function planWeek(
         scheduledFor: free[i],
         recentTitles: titles,
         research: { status: "skipped", checked_on: null, notes: "", sources: [] },
+        // Each draft is told which pillars the rest of the week covers, so it can take a different one.
+        pillarHint: {
+          prefer: preferred.get(idea.id) ?? null,
+          avoid: [
+            ...usedPillars,
+            ...chosen.filter((other) => other.id !== idea.id).map((other) => preferred.get(other.id) ?? ""),
+          ].filter(Boolean),
+        },
       }),
     ),
   );
