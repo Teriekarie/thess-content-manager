@@ -182,6 +182,7 @@ export const TRENDING_AREAS = [
   "AI models, agents and AI at work (any company)",
   "Workflow automation and no-code or low-code tools",
   "Data analytics, dashboards and business intelligence",
+  "Technology, AI, data and automation in oil and gas and the wider energy industry",
   "Careers, hiring and skills in tech",
   "Major technology and business news worldwide",
   "Tech and business news from Nigeria and Africa",
