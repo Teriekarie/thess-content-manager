@@ -66,12 +66,21 @@ export async function getBrandContext(
   profileId: string,
 ): Promise<BrandContext> {
   const settings = await getBrandSettings(supabase, profileId);
-  const { data: guide } = await supabase
-    .from("voice_guides")
-    .select("guide_content")
-    .eq("profile_id", profileId)
-    .eq("active", true)
-    .maybeSingle();
+  const [{ data: guide }, { data: rules }] = await Promise.all([
+    supabase
+      .from("voice_guides")
+      .select("guide_content")
+      .eq("profile_id", profileId)
+      .eq("active", true)
+      .maybeSingle(),
+    supabase
+      .from("learning_notes")
+      .select("note")
+      .eq("profile_id", profileId)
+      .eq("status", "active")
+      .order("created_at")
+      .limit(20),
+  ]);
   return {
     positioning: settings.positioning,
     bio: settings.bio,
@@ -80,6 +89,7 @@ export async function getBrandContext(
     keywords: settings.keywords,
     bannedPhrases: settings.bannedPhrases,
     voiceGuide: guide?.guide_content ?? null,
+    learnedRules: (rules ?? []).map((r) => r.note as string),
   };
 }
 

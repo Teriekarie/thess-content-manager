@@ -86,6 +86,7 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - Analytics are manual entry. An empty box is stored as null ("not available"), never zero. Page numbers are per platform per week (Instagram and Facebook separately); post numbers are per post.
 - The weekly plan is `planWeek()` in `src/lib/planning.ts`, shared by the button and the Sunday job (`src/app/api/jobs/weekly-plan/route.ts`, cron `0 17 * * 0` in `vercel.json`). It only fills free days, so re-running is safe. Each run is recorded in `scheduled_jobs`. It is one invocation, not resumable steps (PRD 14.1a): acceptable while it stays under the 300 second limit.
 - The plan spreads a week across pillars: trending suggestions carry a pillar, `pickVaried()` chooses one per pillar, and each draft gets a `pillarHint` (prefer and avoid). The hint never forces a pillar onto one of Thess's own ideas.
+- Learned rules: a pattern needs at least two pieces of evidence unless it is Thess's own written note (`acceptableRules()` in `src/lib/content/learning.ts`). A rating with a note is feedback on its own; it never triggers a rewrite.
 - `createAdminClient()` (service-role key) is for the scheduled job only; a test enforces this. Always filter by profile id with it.
 - A rewrite saves the old wording to `post_versions` before updating the post.
 - Dates are `YYYY-MM-DD` strings in Africa/Lagos; use `src/lib/dates.ts`, never raw `new Date()` arithmetic.
@@ -102,4 +103,5 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - [x] Holidays and key dates, and Analytics, built (awaiting Thess's test). Automatic holiday drafting needs the scheduler and is not built.
 - [x] Designed graphics and carousel designer built (drawn on a canvas in the browser; awaiting Thess's test). No PDF export yet.
 - [x] Weekly plan fills every free posting day (saved ideas first, then trending), by button and automatically every Sunday 18:00 Lagos via Vercel Cron. No email (Thess declined it). Awaiting Thess's test; the automatic run needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel.
-- [ ] Remaining PRD phases (learning from feedback, integrations)
+- [x] Learning from feedback built (17 Nov 2026, awaiting Thess's test): `learnFromFeedback` in `src/app/(app)/settings/learning-actions.ts` suggests rules from ratings, notes and hand edits; only approved (`active`) rules in `learning_notes` reach drafts via `getBrandContext()`.
+- [ ] Remaining PRD phases (integrations)

@@ -8,6 +8,8 @@ export type BrandContext = {
   keywords: string[];
   bannedPhrases: string[];
   voiceGuide: string | null;
+  /** Rules the author approved from her own feedback. */
+  learnedRules?: string[];
 };
 
 const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join("\n") : "- (none set)");
@@ -37,7 +39,11 @@ ${list(brand.keywords)}
 <voice>
 ${brand.voiceGuide ?? "No voice guide has been approved yet. Write in clear, natural, everyday English: warm, thoughtful and direct; professional without sounding corporate; confident but not boastful; occasionally witty; comfortable admitting uncertainty."}
 </voice>
-
+${
+  brand.learnedRules?.length
+    ? `\n<learned_from_feedback note="Rules the author approved from her ratings and edits. Follow them.">\n${list(brand.learnedRules)}\n</learned_from_feedback>\n`
+    : ""
+}
 <writing_rules>
 - One central idea per post. Start with a specific opening, never clickbait.
 - Short paragraphs with blank lines between them, easy to read on a phone.
@@ -252,4 +258,55 @@ ${postBody}
 </post>
 
 Give a cover headline, 4 to 6 content slides with one point each, and a closing slide. Keep every slide short enough to read at a glance. Use only what the post says. Do not add facts, numbers or examples that are not in it.`;
+}
+
+export type FeedbackItem = {
+  rating: "up" | "down";
+  comment: string;
+  title: string;
+  platform: string;
+  excerpt: string;
+};
+export type EditItem = { before: string; after: string };
+
+export function buildLearningPrompt(input: {
+  feedback: FeedbackItem[];
+  edits: EditItem[];
+  activeRules: string[];
+  dismissedRules: string[];
+}): string {
+  const fb = input.feedback
+    .map(
+      (f, i) =>
+        `<feedback index="${i + 1}" rating="${f.rating === "up" ? "liked" : "not liked"}" platform="${f.platform}">\nTitle: ${f.title}\nHer note: ${f.comment || "(no note)"}\nOpening of the draft: ${f.excerpt}\n</feedback>`,
+    )
+    .join("\n");
+  const ed = input.edits
+    .map((e, i) => `<edit index="${i + 1}">\n<before>\n${e.before}\n</before>\n<after>\n${e.after}\n</after>\n</edit>`)
+    .join("\n");
+  return `The author rates drafts and sometimes edits them herself. Find what she consistently wants, so future drafts need less correcting.
+
+<ratings_and_notes>
+${fb || "(none)"}
+</ratings_and_notes>
+
+<her_own_edits>
+${ed || "(none)"}
+</her_own_edits>
+
+<rules_already_in_use>
+${list(input.activeRules)}
+</rules_already_in_use>
+
+<rules_she_rejected>
+${list(input.dismissedRules)}
+</rules_she_rejected>
+
+Suggest up to 5 short, practical writing rules (each under 20 words), for example "Keep the opening to one short line" or "Fewer hashtags, three at most".
+- A note she wrote that states a clear preference ("too formal", "less hashtags") may become a rule by itself: set evidence_count to 1 and type "direct_instruction".
+- Any other rule needs the same pattern in at least two separate ratings or edits. Count them honestly in evidence_count.
+- Liked drafts show what to keep doing; not liked drafts and edits show what to change.
+- Ignore one-off changes that only make sense for one post (a fact, a name, a date).
+- Do not repeat or reword a rule already in use or one she rejected.
+- If nothing clear stands out, return an empty list. Do not invent preferences.`;
 }

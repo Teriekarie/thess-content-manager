@@ -168,7 +168,9 @@ export default async function PostPage({
         </div>
       </header>
 
-      {saved === "rating" ? <Notice kind="ok">Thanks. Your rating is saved.</Notice> : null}
+      {saved === "rating" ? (
+        <Notice kind="ok">Thanks. Your rating is saved, and the app will learn from it next time you press Learn from my feedback in Settings.</Notice>
+      ) : null}
       {saved === "edited" ? <Notice kind="ok">Your edit is saved. The earlier wording is kept.</Notice> : null}
       {saved === "rewritten" ? (
         <Notice kind="ok">Draft rewritten with your answer. The earlier wording is saved.</Notice>
@@ -424,7 +426,7 @@ export default async function PostPage({
             <form action={rateDraft} className="flex flex-col gap-3">
               <input type="hidden" name="id" value={post.id} />
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="comment" className={label}>Why? (optional)</label>
+                <label htmlFor="comment" className={label}>Why? (optional, and the app learns from it)</label>
                 <input id="comment" name="comment" type="text" className={`${field} min-h-11`}
                   placeholder="For example: too formal, good opening" />
               </div>

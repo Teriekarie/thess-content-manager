@@ -110,3 +110,15 @@ export const CarouselSchema = z.object({
   closing: z.string().describe("Closing takeaway or question, under 16 words"),
 });
 export type CarouselDraft = z.infer<typeof CarouselSchema>;
+
+export const LearningSchema = z.object({
+  rules: z.array(
+    z.object({
+      rule: z.string().describe("A short writing rule, under 20 words"),
+      type: z.enum(["preference", "edit_pattern", "direct_instruction"]),
+      evidence_count: z.number().describe("How many separate ratings or edits show this"),
+      reason: z.string().describe("One plain sentence on what in her feedback shows this"),
+    }),
+  ),
+});
+export type LearningResult = z.infer<typeof LearningSchema>;
