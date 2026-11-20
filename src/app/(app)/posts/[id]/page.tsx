@@ -13,7 +13,7 @@ import { formatLong, lagosToday } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { CarouselStudio, GraphicStudio, type Slide } from "@/components/visual-studio";
 import { getBrandSettings } from "@/lib/data";
-import { addAdaptation, answerQuestion, editPost, rateDraft, setVisualChoice, writeCarousel } from "../actions";
+import { addAdaptation, editPost, rateDraft, reviseDraft, setVisualChoice, writeCarousel } from "../actions";
 
 export const maxDuration = 120;
 
@@ -124,7 +124,7 @@ export default async function PostPage({
       : error === "edit"
         ? "The post text is too short or too long to save."
       : error === "answer"
-        ? "Please type an answer first."
+        ? "Please type what you would like changed first."
       : error.startsWith("ai-")
         ? AI_ERROR_MESSAGES[error.slice(3) as AiErrorCode]
         : "That could not be saved. Please try again."
@@ -173,7 +173,7 @@ export default async function PostPage({
       ) : null}
       {saved === "edited" ? <Notice kind="ok">Your edit is saved. The earlier wording is kept.</Notice> : null}
       {saved === "rewritten" ? (
-        <Notice kind="ok">Draft rewritten with your answer. The earlier wording is saved.</Notice>
+        <Notice kind="ok">Draft rewritten with your changes. The earlier wording is saved.</Notice>
       ) : null}
       {errorMessage ? <Notice kind="warn">{errorMessage}</Notice> : null}
       {post.safety_status !== "clear" ? (
@@ -263,20 +263,35 @@ export default async function PostPage({
             </section>
           ) : null}
 
-          {platform === "linkedin" && typeof extra.clarifying_question === "string" && extra.clarifying_question ? (
-            <section aria-label="A question from the AI" className={`${card} flex flex-col gap-2`}>
-              <h2 className={h2}>One question that could make this stronger</h2>
-              <form action={answerQuestion} className="flex flex-col gap-3">
+          <section id="change" aria-label="Ask for changes" className={`${card} flex flex-col gap-3`}>
+            {platform === "linkedin" && typeof extra.clarifying_question === "string" && extra.clarifying_question ? (
+              <form action={reviseDraft} className="flex flex-col gap-3 border-b border-line pb-4">
                 <input type="hidden" name="id" value={post.id} />
-                <label htmlFor="answer">{extra.clarifying_question}</label>
-                <textarea id="answer" name="answer" rows={3} required className={field}
-                  placeholder="A few words is enough. The draft is rewritten with your answer and the old wording is kept." />
+                <input type="hidden" name="mode" value="answer" />
+                <h2 className={h2}>One question that could make this stronger</h2>
+                <label htmlFor="answer-q">{extra.clarifying_question}</label>
+                <textarea id="answer-q" name="answer" rows={2} required className={field}
+                  placeholder="A few words is enough." />
                 <div>
-                  <SubmitButton className={btnDark} pendingLabel="Rewriting… up to a minute">Update the draft</SubmitButton>
+                  <SubmitButton className={btnDark} pendingLabel="Rewriting… up to a minute">Answer and update</SubmitButton>
                 </div>
               </form>
-            </section>
-          ) : null}
+            ) : null}
+            <form action={reviseDraft} className="flex flex-col gap-3">
+              <input type="hidden" name="id" value={post.id} />
+              <h2 className={h2}>Ask for changes</h2>
+              <label htmlFor="answer" className="text-sm text-muted">
+                Tell the AI what to add, remove or change, in your own words. For example: &ldquo;less about
+                work, it&apos;s the weekend&rdquo;, &ldquo;add the theme of the day&rdquo; or &ldquo;make it longer&rdquo;.
+                {platform === "linkedin" ? " The Instagram + Facebook version is updated to match." : ""}
+              </label>
+              <textarea id="answer" name="answer" rows={3} required className={field} />
+              <div className="flex flex-wrap items-center gap-3">
+                <SubmitButton className={btnDark} pendingLabel="Rewriting… up to a minute">Update the draft</SubmitButton>
+                <span className="text-sm text-muted">About 5 cents. The earlier wording is kept.</span>
+              </div>
+            </form>
+          </section>
 
           {hashtags.length ? (
             <section aria-label="Hashtags" className={`${card} flex flex-wrap items-center justify-between gap-3`}>

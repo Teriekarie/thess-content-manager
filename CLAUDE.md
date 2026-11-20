@@ -88,6 +88,7 @@ Personal, single-owner web app that turns Thess's ideas and learning into review
 - The plan spreads a week across pillars: trending suggestions carry a pillar, `pickVaried()` chooses one per pillar, and each draft gets a `pillarHint` (prefer and avoid). The hint never forces a pillar onto one of Thess's own ideas.
 - Learned rules: a pattern needs at least two pieces of evidence unless it is Thess's own written note (`acceptableRules()` in `src/lib/content/learning.ts`). A rating with a note is feedback on its own; it never triggers a rewrite.
 - `createAdminClient()` (service-role key) is for the scheduled job only; a test enforces this. Always filter by profile id with it.
+- Change requests go through `reviseDraft()` in `src/app/(app)/posts/actions.ts` on every platform, as often as Thess likes. `revisionBlock()` puts her instructions last in the prompt and lets them outrank the style rules (keywords, work topic), but never the no-invention rule or the never-use list. A LinkedIn change also updates its Instagram + Facebook twin. Her requests are stored in `structured_content.answers` and feed `learnFromFeedback`.
 - A rewrite saves the old wording to `post_versions` before updating the post.
 - Dates are `YYYY-MM-DD` strings in Africa/Lagos; use `src/lib/dates.ts`, never raw `new Date()` arithmetic.
 - Server actions redirect with `?saved=` or `?error=` codes; pages turn the codes into plain messages.

@@ -7,8 +7,10 @@ import {
   buildCarouselPrompt,
   buildLinkedInPrompt,
   buildSocialPrompt,
+  buildSocialRevisionPrompt,
   buildSystemPrompt,
   buildTikTokPrompt,
+  buildTikTokRevisionPrompt,
 } from "@/lib/ai/prompts";
 import { AiError, generateStructured, type AiUsage } from "@/lib/ai/provider";
 import {
@@ -200,23 +202,100 @@ export async function addAdaptation(form: FormData) {
   redirect(`/posts/${post.id}`);
 }
 
+/** Saves the current wording of a post before it is replaced, so nothing is lost. */
+async function keepVersion(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+  post: { id: string; body: string; structured_content: unknown },
+  note: string,
+) {
+  const { data: last } = await supabase
+    .from("post_versions")
+    .select("version_number")
+    .eq("post_id", post.id)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase.from("post_versions").insert({
+    profile_id: profileId,
+    post_id: post.id,
+    version_number: (last?.version_number ?? 0) + 1,
+    body: post.body,
+    structured_content: post.structured_content ?? {},
+    change_note: note,
+  });
+  return !error;
+}
+
 /**
- * Rewrites a draft using the author's answer to the AI's follow-up question.
- * The previous wording is saved in post_versions first, so nothing is lost.
+ * Rewrites a draft following the author's instructions, or her answer to the AI's question.
+ * Works on every platform and can be used as many times as she likes. A LinkedIn change also
+ * updates its Instagram + Facebook twin. The previous wording is saved in post_versions first.
  */
-export async function answerQuestion(form: FormData) {
+export async function reviseDraft(form: FormData) {
   const owner = await requireOwner();
   const id = z.uuid().safeParse(text(form, "id"));
-  const answer = text(form, "answer").slice(0, 3000);
+  const instructions = text(form, "answer").slice(0, 3000);
   if (!id.success) redirect("/week");
-  if (answer.length < 3) redirect(`/posts/${id.data}?error=answer`);
+  if (instructions.length < 3) redirect(`/posts/${id.data}?error=answer#change`);
 
   const supabase = await createClient();
   const { data: post } = await supabase.from("posts").select("*").eq("id", id.data).maybeSingle();
-  if (!post || post.platform !== "linkedin") redirect("/week");
+  if (!post) redirect("/week");
   const extra = (post.structured_content ?? {}) as Record<string, unknown>;
-  const question = typeof extra.clarifying_question === "string" ? extra.clarifying_question : "";
-  if (!question) redirect(`/posts/${post.id}`);
+  const question =
+    form.get("mode") === "answer" && typeof extra.clarifying_question === "string"
+      ? extra.clarifying_question
+      : null;
+  const previousRequests = Array.isArray(extra.answers) ? extra.answers : [];
+  const request = { question, answer: instructions };
+  const brand = await getBrandContext(supabase, owner.id);
+  const fail = async (error: unknown) => {
+    const code = error instanceof AiError ? error.code : "failed";
+    await logUsage(supabase, owner.id, "revise_draft", null, code);
+    redirect(`/posts/${post.id}?error=ai-${code}#change`);
+  };
+  const note = "Before rewrite from your instructions";
+
+  if (post.platform === "instagram_facebook" || post.platform === "tiktok") {
+    let row;
+    try {
+      if (post.platform === "tiktok") {
+        const script = [
+          post.body,
+          ...(Array.isArray(extra.beats) ? [`Beats: ${(extra.beats as string[]).join(" | ")}`] : []),
+          ...(typeof extra.caption === "string" ? [`Caption: ${extra.caption}`] : []),
+        ].join("\n\n");
+        const result = await generateStructured({
+          system: buildSystemPrompt(brand),
+          prompt: buildTikTokRevisionPrompt(script, instructions),
+          schema: TikTokDraftSchema,
+        });
+        await logUsage(supabase, owner.id, "revise_draft", result.usage, "ok");
+        row = tikTokRow(result.data, brand);
+      } else {
+        const result = await generateStructured({
+          system: buildSystemPrompt(brand),
+          prompt: buildSocialRevisionPrompt(post.body, instructions),
+          schema: SocialDraftSchema,
+        });
+        await logUsage(supabase, owner.id, "revise_draft", result.usage, "ok");
+        row = socialRow(result.data, brand);
+      }
+    } catch (error) {
+      return fail(error);
+    }
+    if (!(await keepVersion(supabase, owner.id, post, note))) redirect(`/posts/${post.id}?error=save`);
+    await supabase
+      .from("posts")
+      .update({
+        ...row,
+        structured_content: { ...row.structured_content, answers: [...previousRequests, request] },
+      })
+      .eq("id", post.id);
+    refresh(post.id);
+    redirect(`/posts/${post.id}?saved=rewritten`);
+  }
 
   const { data: idea } = post.source_idea_id
     ? await supabase
@@ -226,7 +305,6 @@ export async function answerQuestion(form: FormData) {
         .maybeSingle()
     : { data: null };
 
-  const brand = await getBrandContext(supabase, owner.id);
   let result;
   try {
     result = await generateStructured({
@@ -240,15 +318,13 @@ export async function answerQuestion(form: FormData) {
           extra.research && typeof extra.research === "object"
             ? String((extra.research as { notes?: string }).notes ?? "") || null
             : null,
-        revision: { currentPost: post.body, question, answer },
+        revision: { currentPost: post.body, question, answer: instructions },
       }),
       schema: CombinedDraftSchema,
       maxTokens: 10000,
     });
   } catch (error) {
-    const code = error instanceof AiError ? error.code : "failed";
-    await logUsage(supabase, owner.id, "revise_draft", null, code);
-    redirect(`/posts/${post.id}?error=ai-${code}`);
+    return fail(error);
   }
   await logUsage(supabase, owner.id, "revise_draft", result.usage, "ok");
 
@@ -259,29 +335,13 @@ export async function answerQuestion(form: FormData) {
     .eq("platform", "instagram_facebook")
     .maybeSingle();
 
-  // Keep the old wording before replacing it.
   for (const old of [post, child]) {
-    if (!old) continue;
-    const { data: last } = await supabase
-      .from("post_versions")
-      .select("version_number")
-      .eq("post_id", old.id)
-      .order("version_number", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const { error } = await supabase.from("post_versions").insert({
-      profile_id: owner.id,
-      post_id: old.id,
-      version_number: (last?.version_number ?? 0) + 1,
-      body: old.body,
-      structured_content: old.structured_content ?? {},
-      change_note: "Before rewrite from follow-up answer",
-    });
-    if (error) redirect(`/posts/${post.id}?error=save`);
+    if (old && !(await keepVersion(supabase, owner.id, old, note))) {
+      redirect(`/posts/${post.id}?error=save`);
+    }
   }
 
   const linkedIn = linkedInRow(result.data.linkedin, brand);
-  const previousAnswers = Array.isArray(extra.answers) ? extra.answers : [];
   await supabase
     .from("posts")
     .update({
@@ -289,7 +349,7 @@ export async function answerQuestion(form: FormData) {
       structured_content: {
         ...linkedIn.structured_content,
         research: extra.research ?? null,
-        answers: [...previousAnswers, { question, answer }],
+        answers: [...previousRequests, request],
       },
     })
     .eq("id", post.id);

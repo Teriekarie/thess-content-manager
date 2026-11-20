@@ -37,12 +37,28 @@ export async function learnFromFeedback() {
       .limit(10),
     supabase.from("learning_notes").select("note, status").eq("profile_id", owner.id),
   ]);
+  // Change requests she typed on drafts are feedback too.
+  const { data: requested } = await supabase
+    .from("posts")
+    .select("structured_content")
+    .eq("profile_id", owner.id)
+    .eq("platform", "linkedin")
+    .order("updated_at", { ascending: false })
+    .limit(40);
+  const instructions = (requested ?? [])
+    .flatMap((p) => {
+      const answers = (p.structured_content as { answers?: unknown } | null)?.answers;
+      return Array.isArray(answers) ? answers : [];
+    })
+    .map((a) => (a && typeof a === "object" && typeof a.answer === "string" ? a.answer.trim().slice(0, 300) : ""))
+    .filter(Boolean)
+    .slice(0, 20);
 
   // A post's latest rating is the one that counts.
   const latest = new Map<string, { rating: "up" | "down"; comment: string }>();
   for (const f of feedback ?? []) if (!latest.has(f.post_id)) latest.set(f.post_id, f);
   const postIds = [...new Set([...latest.keys(), ...(versions ?? []).map((v) => v.post_id as string)])];
-  if (latest.size + (versions?.length ?? 0) < 2) redirect("/settings?error=little-feedback#learning");
+  if (latest.size + (versions?.length ?? 0) + instructions.length < 2) redirect("/settings?error=little-feedback#learning");
 
   const { data: posts } = await supabase
     .from("posts")
@@ -69,7 +85,7 @@ export async function learnFromFeedback() {
   try {
     result = await generateStructured({
       system: buildSystemPrompt(brand),
-      prompt: buildLearningPrompt({ feedback: feedbackItems, edits: editItems, activeRules, dismissedRules }),
+      prompt: buildLearningPrompt({ feedback: feedbackItems, edits: editItems, instructions, activeRules, dismissedRules }),
       schema: LearningSchema,
       maxTokens: 4000,
     });

@@ -95,7 +95,7 @@ export function buildLinkedInPrompt(input: {
   recentTitles: string[];
   research?: string | null;
   pillarHint?: { prefer?: string | null; avoid: string[] } | null;
-  revision?: { currentPost: string; question: string; answer: string } | null;
+  revision?: { currentPost: string; question?: string | null; answer: string } | null;
 }): string {
   return `Write a LinkedIn post, in "linkedin", from ${IDEA_KIND[input.inputType]} below.
 
@@ -114,12 +114,7 @@ ${
   input.research
     ? `\n<current_context note="Found by a live web search today. Use it to keep the post current. Only state a fact from it if it is clearly reported there, and never invent details beyond it. Hashtags seen in use may inform your hashtag choice.">\n${input.research}\n</current_context>\n`
     : ""
-}${
-  input.revision
-    ? `\n<previous_draft>\n${input.revision.currentPost}\n</previous_draft>\n\nYou asked the author: "${input.revision.question}"\nShe answered: "${input.revision.answer}"\n\nRewrite the post using her answer. Keep what already worked. Use only the details she gave. Set clarifying_question to null unless something essential is still missing.\n`
-    : ""
-}
-${toneInstruction(input.tone)}
+}${toneInstruction(input.tone)}
 
 Choose short or long form to suit the idea, and set "length" accordingly. Recommend the best format and explain why in one sentence. Give exactly two alternative opening lines that take a different angle from the main one. Pick the pillar from the author's list.
 
@@ -132,7 +127,7 @@ ${input.recentTitles.length ? `\nRecent posts, to avoid repeating an angle:\n${l
     input.pillarHint?.avoid.length
       ? `\nOther posts this week already cover these pillars:\n${list(input.pillarHint.avoid)}\nIf the idea honestly fits a different pillar, take that angle so the week has variety. Never force a pillar the idea does not fit.`
       : ""
-  }`;
+  }${input.revision ? `\n${revisionBlock(input.revision, "Apply the same changes to the Instagram and Facebook caption.")}` : ""}`;
 }
 
 export function buildSocialPrompt(linkedInBody: string): string {
@@ -272,6 +267,7 @@ export type EditItem = { before: string; after: string };
 export function buildLearningPrompt(input: {
   feedback: FeedbackItem[];
   edits: EditItem[];
+  instructions?: string[];
   activeRules: string[];
   dismissedRules: string[];
 }): string {
@@ -294,6 +290,10 @@ ${fb || "(none)"}
 ${ed || "(none)"}
 </her_own_edits>
 
+<change_requests_she_made>
+${list(input.instructions ?? [])}
+</change_requests_she_made>
+
 <rules_already_in_use>
 ${list(input.activeRules)}
 </rules_already_in_use>
@@ -303,10 +303,47 @@ ${list(input.dismissedRules)}
 </rules_she_rejected>
 
 Suggest up to 5 short, practical writing rules (each under 20 words), for example "Keep the opening to one short line" or "Fewer hashtags, three at most".
-- A note she wrote that states a clear preference ("too formal", "less hashtags") may become a rule by itself: set evidence_count to 1 and type "direct_instruction".
+- A note or change request she wrote that states a lasting preference ("too formal", "less hashtags") may become a rule by itself. One-off requests about a single post ("mention the theme") are not rules. For a lasting one, set evidence_count to 1 and type "direct_instruction".
 - Any other rule needs the same pattern in at least two separate ratings or edits. Count them honestly in evidence_count.
 - Liked drafts show what to keep doing; not liked drafts and edits show what to change.
 - Ignore one-off changes that only make sense for one post (a fact, a name, a date).
 - Do not repeat or reword a rule already in use or one she rejected.
 - If nothing clear stands out, return an empty list. Do not invent preferences.`;
+}
+
+/**
+ * The author's change request. It comes last and outranks the general style rules,
+ * because a request like "less about work" must win over "work in the search keywords".
+ */
+export function revisionBlock(
+  revision: { currentPost: string; question?: string | null; answer: string },
+  extra = "",
+): string {
+  return `<current_draft>
+${revision.currentPost}
+</current_draft>
+${revision.question ? `\nYou asked the author: ${revision.question}\n` : ""}
+<author_instructions>
+${revision.answer}
+</author_instructions>
+
+Rewrite the draft following the author's instructions above. They are the most important part of this request:
+- If she asks to remove or tone down a topic, word, tone or idea, take it out properly, even where the general rules say otherwise. For example, if she says the post is not about work, leave out work talk and search keywords.
+- If she asks to add something or gives a new detail, include it clearly.
+- If she answers your question with a detail, use it.
+- Change what she asked for and keep the rest. Where she asked for a change, the new version must clearly show it; do not hand back near-identical wording.
+- Still never invent facts or personal stories, and never use the phrases on her never-use list.
+${extra ? `- ${extra}\n` : ""}Set clarifying_question to null unless something essential is still missing.`;
+}
+
+export function buildSocialRevisionPrompt(currentPost: string, instructions: string): string {
+  return `This is a caption posted on both Instagram and Facebook.
+
+${revisionBlock({ currentPost, answer: instructions })}`;
+}
+
+export function buildTikTokRevisionPrompt(currentScript: string, instructions: string): string {
+  return `This is a short TikTok video script the author records herself. Return the full updated script with its beats, on-screen text, shots, caption and duration.
+
+${revisionBlock({ currentPost: currentScript, answer: instructions })}`;
 }

@@ -151,3 +151,30 @@ describe("handles and occasions", () => {
     expect(eventKey("2026-12-10", "Human Rights Day")).not.toBe(eventKey("2026-12-10", "Nobel Prize Day"));
   });
 });
+
+import { buildSocialRevisionPrompt, revisionBlock } from "@/lib/ai/prompts";
+
+describe("change requests", () => {
+  it("puts her instructions last in the LinkedIn request and lets them outrank the style rules", () => {
+    const prompt = buildLinkedInPrompt({
+      idea: "Weekend binge plans",
+      inputType: "thought",
+      tone: "funny",
+      recentTitles: ["Something else"],
+      revision: { currentPost: "Dashboards closed. Binge time.", answer: "less about work, it's the weekend" },
+    });
+    expect(prompt.trim().endsWith("Set clarifying_question to null unless something essential is still missing.")).toBe(true);
+    expect(prompt).toContain("<author_instructions>\nless about work, it's the weekend\n</author_instructions>");
+    expect(prompt).toMatch(/even where the general rules say otherwise/);
+    expect(prompt).toMatch(/do not hand back near-identical wording/);
+    expect(prompt).toContain("Apply the same changes to the Instagram and Facebook caption.");
+  });
+  it("works without a question, and still keeps the no-invention rule", () => {
+    const block = revisionBlock({ currentPost: "Post", answer: "add the theme of the day" });
+    expect(block).not.toContain("You asked the author");
+    expect(block).toMatch(/never invent facts/);
+  });
+  it("can change an Instagram + Facebook caption on its own", () => {
+    expect(buildSocialRevisionPrompt("Caption", "shorter please")).toContain("shorter please");
+  });
+});
